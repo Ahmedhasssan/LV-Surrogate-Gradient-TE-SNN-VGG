@@ -1,9 +1,9 @@
 import random
 from models.layers import *
 
-class VGGSNN(nn.Module):
+class VGGSNN9(nn.Module):
     def __init__(self):
-        super(VGGSNN, self).__init__()
+        super(VGGSNN9, self).__init__()
         #pool = SeqToANNContainer(nn.MaxPool2d(2))
         pool = SeqToANNContainer(nn.AvgPool2d(2))
         self.features = nn.Sequential(
