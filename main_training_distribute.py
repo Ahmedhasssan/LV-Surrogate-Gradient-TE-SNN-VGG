@@ -15,7 +15,7 @@ import torch.utils.data
 import torch.utils.data.distributed
 from models.resnet_models import resnet19
 from models.VGG_models import VGGSNN
-from models.VGG9_model import VGGSNN9
+from models.VGG9_model import VGGSNN11
 import data_loaders
 import shutil
 import torch
@@ -139,7 +139,7 @@ def main_worker(local_rank, nprocs, args):
         #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/VGG9/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1/"
+    save_path="./save/VGG11/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1/"
     #save_path="./save/${args.dataset}/${args.model}_BaseLine_VGG7/"
     log_file="s${model}_training.log"
     name="S${model}_${dataset}_float_spike"
@@ -180,7 +180,7 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    model = VGGSNN9()
+    model = VGGSNN11()
     #model = VGGSNN()
     #model = resnet19()
     model.T = args.T
