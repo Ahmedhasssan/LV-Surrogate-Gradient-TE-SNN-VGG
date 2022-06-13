@@ -14,8 +14,8 @@ import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 from models.resnet_models import resnet19
-from models.VGG_models import VGGSNN
-from models.VGG9_model import VGGSNN11
+from models.VGG9_models import VGGSNN9, VGGSNN9_4bit
+from models.VGG11_model import VGGSNN11
 import data_loaders
 import shutil
 import torch
