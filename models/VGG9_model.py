@@ -3,9 +3,9 @@ from models.layers import *
 
 
 
-class VGGSNN9(nn.Module):
+class VGGSNN11(nn.Module):
     def __init__(self):
-        super(VGGSNN9, self).__init__()
+        super(VGGSNN11, self).__init__()
         pool = SeqToANNContainer(nn.AvgPool2d(2))
         #pool = APLayer(2)
         self.features = nn.Sequential(
