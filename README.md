@@ -12,3 +12,7 @@ The Following Setup is tested and it is working:
 
 ## Description
  * used Sigmoid Surrogate Gradient
+
+## Files to Run
+1. To initiate the training run "python3 main.py". This will start the training using mean value for TET loss as 1 (Here temporal weightage is 0.45)
+2. Run "python3 main_avgVth.py" to start training where 1 is replaced with Avg_learnable Threshold (Here temporal weightage is 0.9)
