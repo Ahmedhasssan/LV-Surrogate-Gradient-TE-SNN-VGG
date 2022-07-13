@@ -24,7 +24,7 @@ import tabulate
 import argparse
 from functions import TET_loss, seed_all
 import sys
-sys.path.insert(1, '/home/ahasssan/ahmed/temporal_efficient_training/dvsloader')
+sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 import dvs2dataset
 
 

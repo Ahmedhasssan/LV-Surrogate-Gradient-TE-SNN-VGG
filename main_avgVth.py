@@ -25,9 +25,8 @@ import tabulate
 import argparse
 from functions import TET_loss, seed_all
 import sys
-sys.path.insert(1, '/home/ahasssan/ahmed/temporal_efficient_training/dvsloader')
+sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 import dvs2dataset
-
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
@@ -205,7 +204,7 @@ def main_worker(local_rank, nprocs, args):
     cudnn.benchmark = True
     
     ### Own DataPath and Data-Loader####
-    data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
+    data_path="/home2/ahasssan/data/cifar_dvs_pt_30/"
     din = [48, 48]
     train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     ####################################
