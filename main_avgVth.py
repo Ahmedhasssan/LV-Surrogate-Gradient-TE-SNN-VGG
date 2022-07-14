@@ -93,7 +93,7 @@ parser.add_argument('--TET',
                     metavar='N',
                     help='if use Temporal Efficient Training (default: True)')
 parser.add_argument('--lamb',
-                    default=0.95,
+                    default=0.90,
                     type=float,
                     metavar='N',
                     help='adjust the norm factor to avoid outlier (default: 0.0)')
@@ -140,7 +140,7 @@ def main_worker(local_rank, nprocs, args):
         #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/VGG9/avg_Vth/lr_sch/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1_lamb_0.99/"
+    save_path="./save/VGG9/avg_Vth/lr_sch/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1_lamb_0.90/"
     #save_path="./save/${args.dataset}/${args.model}_BaseLine_VGG7/"
     log_file="s${model}_training.log"
     name="S${model}_${dataset}_float_spike"
