@@ -16,6 +16,7 @@ import torch.utils.data.distributed
 from models.resnet_models import resnet19
 from models.VGG9_models import VGGSNN9, VGGSNN9_4bit
 from models.VGG11_model import VGGSNN11
+from models.VGG7_models import VGGSNN7
 import data_loaders
 import shutil
 import torch
@@ -23,11 +24,11 @@ import tabulate
 import argparse
 from functions import TET_loss, seed_all
 import sys
-sys.path.insert(1, '/home/ahasssan/ahmed/temporal_efficient_training/dvsloader')
-import dvs2dataset
+sys.path.insert(1, '/home2/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
+from dvsloader import dvs2dataset
 
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -37,7 +38,7 @@ parser.add_argument('-j',
                     metavar='N',
                     help='number of data loading workers (default: 10)')
 parser.add_argument('--epochs',
-                    default=500,
+                    default=200,
                     type=int,
                     metavar='N',
                     help='number of total epochs to run')
@@ -139,7 +140,7 @@ def main_worker(local_rank, nprocs, args):
         #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/VGG11/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1/"
+    save_path="./save/ncars/VGG7/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1/"
     #save_path="./save/${args.dataset}/${args.model}_BaseLine_VGG7/"
     log_file="s${model}_training.log"
     name="S${model}_${dataset}_float_spike"
@@ -180,7 +181,18 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    model = VGGSNN11()
+    ### Own DataPath and Data-Loader####
+    # data_path="/home/jmeng15/data/dvs_cifar10_30steps"
+    # data_path="/home/jmeng15/data/ibm_gesture_pt/"
+    data_path="/home/jmeng15/data/ncars_pt/"
+    # din = [48, 48]
+    din = [50, 60]
+    # train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=16, size=din[0])
+    # train_loader, val_loader, num_classes = dvs2dataset.get_ibm_loader(data_path, batch_size=16, size=din[0])
+    train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=16, size=din)
+    ####################################
+
+    model = VGGSNN7(num_classes)
     #model = VGGSNN()
     #model = resnet19()
     model.T = args.T
@@ -204,11 +216,6 @@ def main_worker(local_rank, nprocs, args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, eta_min=0, T_max=args.epochs)
     cudnn.benchmark = True
     
-    ### Own DataPath and Data-Loader####
-    data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
-    din = [48, 48]
-    train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=16, size=din[0])
-    ####################################
 
     train_sampler = torch.utils.data.distributed.DistributedSampler(
          train_loader)
@@ -293,7 +300,8 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
                 loss = TET_loss(output, target, criterion, args.means, args.lamb)
 
         # measure accuracy and record loss
-            acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
+            acc1, = accuracy(mean_out, target, topk=(1,))
+            
             cnt = 0
             for name, param in model.named_parameters():
                 if 'thresh' in name:
@@ -305,11 +313,11 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
 
             reduced_loss = reduce_mean(loss, args.nprocs)
             reduced_acc1 = reduce_mean(acc1, args.nprocs)
-            reduced_acc5 = reduce_mean(acc5, args.nprocs)
+            # reduced_acc5 = reduce_mean(acc5, args.nprocs)
 
             losses.update(reduced_loss.item(), images.size(0))
             top1.update(reduced_acc1.item(), images.size(0))
-            top5.update(reduced_acc5.item(), images.size(0))
+            # top5.update(reduced_acc5.item(), images.size(0))
 
             # compute gradient and do SGD step
             optimizer.zero_grad()
@@ -355,17 +363,17 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 loss = criterion(mean_out, target)
 
                 # measure accuracy and record loss
-                acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
+                acc1, = accuracy(mean_out, target, topk=(1,))
 
                 torch.distributed.barrier()
 
                 reduced_loss = reduce_mean(loss, args.nprocs)
                 reduced_acc1 = reduce_mean(acc1, args.nprocs)
-                reduced_acc5 = reduce_mean(acc5, args.nprocs)
+                # reduced_acc5 = reduce_mean(acc5, args.nprocs)
 
                 losses.update(reduced_loss.item(), images.size(0))
                 top1.update(reduced_acc1.item(), images.size(0))
-                top5.update(reduced_acc5.item(), images.size(0))
+                # top5.update(reduced_acc5.item(), images.size(0))
 
                 # measure elapsed time
                 batch_time.update(time.time() - end)

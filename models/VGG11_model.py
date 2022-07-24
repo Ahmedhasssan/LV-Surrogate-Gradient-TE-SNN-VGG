@@ -4,7 +4,7 @@ from models.layers import *
 
 
 class VGGSNN11(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes):
         super(VGGSNN11, self).__init__()
         pool = SeqToANNContainer(nn.AvgPool2d(2))
         #pool = APLayer(2)
@@ -28,7 +28,7 @@ class VGGSNN11(nn.Module):
         # self.T = 4
         self.classifier1 = SeqToANNContainer(nn.Linear(1024*W*W,512))
         self.drop = SeqToANNContainer(Dropout(0.5))
-        self.classifier2 = SeqToANNContainer(nn.Linear(512,10))
+        self.classifier2 = SeqToANNContainer(nn.Linear(512,num_classes))
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

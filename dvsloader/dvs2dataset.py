@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.datasets import DatasetFolder
 from torchvision import transforms
-from utils_.visualizations import visualizeHistogram, visualizeEventsTime
+from .utils_.visualizations import visualizeHistogram, visualizeEventsTime
 from torch.utils.data import random_split, DataLoader
 
 # RGB characteristics
@@ -368,6 +368,11 @@ class DVSLoader:
 def loadpt(data):
     return torch.load(data)
 
+def loadgesture(data):
+    img = torch.load(data)
+    img = img.permute(1,0,2,3)
+    return img
+
 def get_caltect_loader(path, batch_size):
     dataset = DatasetFolder(
         root=path,
@@ -386,13 +391,15 @@ def get_caltect_loader(path, batch_size):
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=4)
     return trainloader, testloader, num_classes
 
-def get_ncars_loader(path, batch_size):
+def get_ncars_loader(path, batch_size, size):
     num_classes = 2
     train_path = os.path.join(path, "train")
     test_path = os.path.join(path, "test")
+
+    transform = transforms.Resize(size)
     
-    trainset = DatasetFolder(root=train_path, loader=loadpt, extensions=(".pt"))
-    testset = DatasetFolder(root=test_path, loader=loadpt, extensions=(".pt"))
+    trainset = DatasetFolder(root=train_path, loader=loadpt, extensions=(".pt"), transform=transform)
+    testset = DatasetFolder(root=test_path, loader=loadpt, extensions=(".pt"), transform=transform)
 
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=4)
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=4)
@@ -418,16 +425,18 @@ def get_cifar_loader(path, batch_size, size):
     return trainloader, testloader, num_classes
 
 
-def get_ibm_loader(path, batch_size):
+def get_ibm_loader(path, batch_size, size):
     num_classes = 11
     train_path = os.path.join(path, "train")
     test_path = os.path.join(path, "test")
-    
-    trainset = DatasetFolder(root=train_path, loader=loadpt, extensions=(".pt"))
-    testset = DatasetFolder(root=test_path, loader=loadpt, extensions=(".pt"))
 
-    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=4)
-    testloader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=4)
+    transform = transforms.Resize(size)
+    
+    trainset = DatasetFolder(root=train_path, loader=loadpt, extensions=(".pt"), transform=transform)
+    testset = DatasetFolder(root=test_path, loader=loadpt, extensions=(".pt"), transform=transform)
+
+    trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=10)
+    testloader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=10)
     
     return trainloader, testloader, num_classes
 
