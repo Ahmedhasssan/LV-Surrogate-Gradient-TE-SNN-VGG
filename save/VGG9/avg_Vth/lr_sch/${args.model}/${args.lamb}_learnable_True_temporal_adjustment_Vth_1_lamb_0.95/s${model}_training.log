@@ -1,0 +1,214 @@
+Namespace(T=2, TET=True, batch_size=64, dataset='dvscifar10', epochs=200, evaluate=False, lamb=0.9, lr=0.001, means=1.0, model='ResNet19', nprocs=2, print_freq=10, seed=1000, start_epoch=0, workers=10)
+Namespace(T=2, TET=True, batch_size=64, dataset='dvscifar10', epochs=200, evaluate=False, lamb=0.9, lr=0.001, means=1.0, model='ResNet19', nprocs=2, print_freq=10, seed=1000, start_epoch=0, workers=10)
+VGGSNN9(
+  (features): Sequential(
+    (0): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (1): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (2): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (3): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+    (4): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (5): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (6): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+    (7): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (8): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (9): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+    (10): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (11): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (12): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+  )
+  (classifier1): SeqToANNContainer(
+    (module): Linear(in_features=4608, out_features=512, bias=True)
+  )
+  (classifier2): SeqToANNContainer(
+    (module): Linear(in_features=512, out_features=10, bias=True)
+  )
+  (drop): SeqToANNContainer(
+    (module): Dropout(p=0.5, inplace=False)
+  )
+)
+VGGSNN9(
+  (features): Sequential(
+    (0): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(32, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (1): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(32, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (2): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(64, 64, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(64, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (3): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+    (4): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(64, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (5): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(128, 128, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(128, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (6): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+    (7): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(128, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (8): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(256, 256, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(256, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (9): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+    (10): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(256, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (11): Layer(
+      (fwd): SeqToANNContainer(
+        (module): Sequential(
+          (0): Conv2d(512, 512, kernel_size=(3, 3), stride=(1, 1), padding=(1, 1))
+          (1): BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True)
+        )
+      )
+      (act): ZIFArchTan()
+    )
+    (12): SeqToANNContainer(
+      (module): AvgPool2d(kernel_size=2, stride=2, padding=0)
+    )
+  )
+  (classifier1): SeqToANNContainer(
+    (module): Linear(in_features=4608, out_features=512, bias=True)
+  )
+  (classifier2): SeqToANNContainer(
+    (module): Linear(in_features=512, out_features=10, bias=True)
+  )
+  (drop): SeqToANNContainer(
+    (module): Dropout(p=0.5, inplace=False)
+  )
+)
