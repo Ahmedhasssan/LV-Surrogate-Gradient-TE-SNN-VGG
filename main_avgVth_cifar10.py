@@ -11,10 +11,12 @@ import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.optim
 import torch.multiprocessing as mp
+from torchsummary import summary
 import torch.utils.data
 import torch.utils.data.distributed
 from models.resnet_models import resnet19
 from models.VGG9_models import VGGSNN9, VGGSNN9_4bit
+from models.VGG9_cifar_models import CIFARVGGSNN9
 from models.VGG11_model import VGGSNN11, VGGSNN11_4bit
 from models.MobilenetSNN import MBNETSNN
 import data_loaders
@@ -23,12 +25,12 @@ import torch
 import tabulate
 import argparse
 from functions import TET_loss, seed_all
+from get_cifar_loader import build_cifar
 import sys
-sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
+sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-
-# os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -49,7 +51,7 @@ parser.add_argument('--start-epoch',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('-b',
                     '--batch-size',
-                    default=64,
+                    default=128,
                     type=int,
                     metavar='N',
                     help='mini-batch size (default: 256), this is the total '
@@ -78,10 +80,10 @@ parser.add_argument('--seed',
                     type=int,
                     help='seed for initializing training. ')
 parser.add_argument('--T',
-                    default=2,
+                    default=20,
                     type=int,
                     metavar='N',
-                    help='snn simulation time (default: 2)')
+                    help='snn simulation time (default: 20)')
 parser.add_argument('--means',
                     default=1.0,
                     type=float,
@@ -93,7 +95,7 @@ parser.add_argument('--TET',
                     metavar='N',
                     help='if use Temporal Efficient Training (default: True)')
 parser.add_argument('--lamb',
-                    default=0.45,
+                    default=0.90,
                     type=float,
                     metavar='N',
                     help='adjust the norm factor to avoid outlier (default: 0.0)')
@@ -140,10 +142,8 @@ def main_worker(local_rank, nprocs, args):
         #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/ncars/VGG7/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1/"
-    #save_path="./save/${args.dataset}/${args.model}_BaseLine_VGG7/"
-    log_file="s${model}_training.log"
-    name="S${model}_${dataset}_float_spike"
+    save_path="./save/cifar10/resnet19/avg_Vth/lr_sch/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1_lamb_0.90/"
+    log_file="training.log"
 
     # args = parser.parse_args()
     if not os.path.isdir(save_path):
@@ -181,21 +181,8 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    ### Own DataPath and Data-Loader####
-    # data_path="/home/jmeng15/data/dvs_cifar10_30steps"
-    # data_path="/home/jmeng15/data/ibm_gesture_pt/"
-    data_path="/home/jmeng15/data/ncars_pt/"
-    # din = [48, 48]
-    din = [50, 60]
-    # train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=16, size=din[0])
-    # train_loader, val_loader, num_classes = dvs2dataset.get_ibm_loader(data_path, batch_size=16, size=din[0])
-    train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=16, size=din)
-    ####################################
-
-    model = VGGSNN7(num_classes)
-    #model = VGGSNN()
-    #model = resnet19()
-    model.T = args.T
+    # model = CIFARVGGSNN9(T=args.T)
+    model = resnet19(num_classes=10)
     logger.info(model)
 
     if load_names != None:
@@ -204,9 +191,7 @@ def main_worker(local_rank, nprocs, args):
 
     torch.cuda.set_device(local_rank)
     model.cuda(local_rank)
-    # When using a single GPU per process and per
-    # DistributedDataParallel, we need to divide the batch size
-    # ourselves based on the total number of GPUs we have
+    
     args.batch_size = int(args.batch_size / args.nprocs)
     model = torch.nn.parallel.DistributedDataParallel(model,
                                                       device_ids=[local_rank])
@@ -216,6 +201,7 @@ def main_worker(local_rank, nprocs, args):
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, eta_min=0, T_max=args.epochs)
     cudnn.benchmark = True
     
+    train_loader, val_loader = build_cifar(args)
 
     train_sampler = torch.utils.data.distributed.DistributedSampler(
          train_loader)
@@ -276,6 +262,7 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
                              prefix="Epoch: [{}]".format(epoch))
 
     # switch to train mode
+    mean=1
     model.train()
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
@@ -292,16 +279,17 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
         else:
             vthre = AverageMeter('vth', ':.4e')
             output = model(images)
-            
+            # print(images.shape)
+            # summary(model, (1, 3, 48, 48))
+            # import pdb;pdb.set_trace()
             mean_out = torch.mean(output, dim=1)
             if not args.TET:
                 loss = criterion(mean_out, target)
             else:
-                loss = TET_loss(output, target, criterion, args.means, args.lamb)
+                loss = TET_loss(output, target, criterion, mean, args.lamb) ### Change mean to args.mean
 
         # measure accuracy and record loss
-            acc1, = accuracy(mean_out, target, topk=(1,))
-            
+            acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
             cnt = 0
             for name, param in model.named_parameters():
                 if 'thresh' in name:
@@ -313,11 +301,11 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
 
             reduced_loss = reduce_mean(loss, args.nprocs)
             reduced_acc1 = reduce_mean(acc1, args.nprocs)
-            # reduced_acc5 = reduce_mean(acc5, args.nprocs)
+            reduced_acc5 = reduce_mean(acc5, args.nprocs)
 
             losses.update(reduced_loss.item(), images.size(0))
             top1.update(reduced_acc1.item(), images.size(0))
-            # top5.update(reduced_acc5.item(), images.size(0))
+            top5.update(reduced_acc5.item(), images.size(0))
 
             # compute gradient and do SGD step
             optimizer.zero_grad()
@@ -334,6 +322,7 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
             logger_dict["train_top1"] = top1.avg
             logger_dict["train_top5"] = top5.avg
             logger_dict["avg_vth"] = vthre.avg
+            mean = vthre.avg
 
 
 def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict):
@@ -363,17 +352,17 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 loss = criterion(mean_out, target)
 
                 # measure accuracy and record loss
-                acc1, = accuracy(mean_out, target, topk=(1,))
+                acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
 
                 torch.distributed.barrier()
 
                 reduced_loss = reduce_mean(loss, args.nprocs)
                 reduced_acc1 = reduce_mean(acc1, args.nprocs)
-                # reduced_acc5 = reduce_mean(acc5, args.nprocs)
+                reduced_acc5 = reduce_mean(acc5, args.nprocs)
 
                 losses.update(reduced_loss.item(), images.size(0))
                 top1.update(reduced_acc1.item(), images.size(0))
-                # top5.update(reduced_acc5.item(), images.size(0))
+                top5.update(reduced_acc5.item(), images.size(0))
 
                 # measure elapsed time
                 batch_time.update(time.time() - end)
@@ -444,7 +433,7 @@ class ProgressMeter(object):
 
 def adjust_learning_rate(optimizer, epoch, args):
     """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
-    lr = args.lr * (0.7 ** (epoch // 30))
+    lr = args.lr * (0.8 ** (epoch // 30))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
     return lr

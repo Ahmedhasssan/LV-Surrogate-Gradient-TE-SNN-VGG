@@ -26,7 +26,7 @@ import argparse
 from functions import TET_loss, seed_all
 import sys
 sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
-import dvs2dataset
+from dvsloader import dvs2dataset
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 

@@ -154,7 +154,7 @@ class ZIFArchTan(nn.Module):
         self.tau = tau
         self.gama = gama
         self.thresh = nn.Parameter(torch.Tensor([thresh]), requires_grad=True)
-        self.salpha = nn.Parameter(torch.Tensor([1.0]), requires_grad=True)
+        # self.salpha = nn.Parameter(torch.Tensor([1.0]), requires_grad=True)
 
     def forward(self, x):
         mem = 0
@@ -215,3 +215,28 @@ def add_dimention(x, T):
     return x
 
 
+# ----- For ResNet19 code -----
+
+
+class tdLayer(nn.Module):
+    def __init__(self, layer, bn=None):
+        super(tdLayer, self).__init__()
+        self.layer = SeqToANNContainer(layer)
+        self.bn = bn
+
+    def forward(self, x):
+        x_ = self.layer(x)
+        if self.bn is not None:
+            x_ = self.bn(x_)
+        return x_
+
+
+class tdBatchNorm(nn.Module):
+    def __init__(self, out_panel):
+        super(tdBatchNorm, self).__init__()
+        self.bn = nn.BatchNorm2d(out_panel)
+        self.seqbn = SeqToANNContainer(self.bn)
+
+    def forward(self, x):
+        y = self.seqbn(x)
+        return y
