@@ -184,7 +184,7 @@ def main_worker(local_rank, nprocs, args):
     ### Own DataPath and Data-Loader####
     # data_path="/home/jmeng15/data/dvs_cifar10_30steps"
     # data_path="/home/jmeng15/data/ibm_gesture_pt/"
-    data_path="/home/jmeng15/data/ncars_pt/"
+    data_path="/home2/jmeng15/data/ncars_pt"
     # din = [48, 48]
     din = [50, 60]
     # train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=16, size=din[0])

@@ -30,7 +30,7 @@ import sys
 sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -121,7 +121,7 @@ def reduce_mean(tensor, nprocs):
 
 def main():
     args.nprocs = torch.cuda.device_count()
-
+    
     mp.spawn(main_worker, nprocs=args.nprocs, args=(args.nprocs, args))
 
 def lr_schedule(epoch):
@@ -142,7 +142,7 @@ def main_worker(local_rank, nprocs, args):
         #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/cifar10/resnet19/avg_Vth/lr_sch/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1_lamb_0.90/"
+    save_path="./save/cifar10/VGG9/TETbaseline/"
     log_file="training.log"
 
     # args = parser.parse_args()
@@ -181,8 +181,8 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    # model = CIFARVGGSNN9(T=args.T)
-    model = resnet19(num_classes=10)
+    model = CIFARVGGSNN9(T=args.T)
+    # model = resnet19(num_classes=10)
     logger.info(model)
 
     if load_names != None:

@@ -5,20 +5,16 @@ import time
 import logging
 import warnings
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.optim
 import torch.multiprocessing as mp
-from torchsummary import summary
 import torch.utils.data
 import torch.utils.data.distributed
 from models.resnet_models import resnet19
-from models.VGG9_models import VGGSNN9, VGGSNN9_4bit
-from models.VGG11_model import VGGSNN11, VGGSNN11_4bit
-from models.MobilenetSNN import MBNETSNN
-import data_loaders
+from models.VGG9_models import VGGSNN9
+from models.VGG7_models import VGGSNN7
 import shutil
 import torch
 import tabulate
@@ -28,7 +24,7 @@ import sys
 sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -49,7 +45,7 @@ parser.add_argument('--start-epoch',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('-b',
                     '--batch-size',
-                    default=64,
+                    default=32,
                     type=int,
                     metavar='N',
                     help='mini-batch size (default: 256), this is the total '
@@ -78,7 +74,7 @@ parser.add_argument('--seed',
                     type=int,
                     help='seed for initializing training. ')
 parser.add_argument('--T',
-                    default=2,
+                    default=30,
                     type=int,
                     metavar='N',
                     help='snn simulation time (default: 2)')
@@ -92,13 +88,18 @@ parser.add_argument('--TET',
                     type=bool,
                     metavar='N',
                     help='if use Temporal Efficient Training (default: True)')
+parser.add_argument('--lvth',
+                    default=False,
+                    type=bool,
+                    metavar='N',
+                    help='if use learnable threshold (default: True)')
 parser.add_argument('--lamb',
                     default=0.90,
                     type=float,
                     metavar='N',
                     help='adjust the norm factor to avoid outlier (default: 0.0)')
 parser.add_argument('--dataset',
-                    default='dvscifar10',
+                    default='ncars',
                     type=str,
                     metavar='N',
                     help='dataset')
@@ -107,6 +108,10 @@ parser.add_argument('--model',
                     type=str,
                     metavar='N',
                     help='model for training')
+parser.add_argument('--save_path', 
+                    type=str, 
+                    default='./save/', 
+                    help='Folder to save checkpoints and log.')
 args = parser.parse_args()
 
 
@@ -137,13 +142,10 @@ def main_worker(local_rank, nprocs, args):
 
     if not os.path.exists('./save'):
         os.makedirs('./save')
-        #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/VGG9/avg_Vth/lr_sch/${args.model}/${args.lamb}_learnable_True_temporal_adjustment_Vth_1_lamb_0.90/"
-    #save_path="./save/${args.dataset}/${args.model}_BaseLine_VGG7/"
-    log_file="s${model}_training.log"
-    name="S${model}_${dataset}_float_spike"
+    save_path=args.save_path
+    log_file="training.log"
 
     # args = parser.parse_args()
     if not os.path.isdir(save_path):
@@ -181,9 +183,17 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    #model = MBNETSNN()
-    model = VGGSNN9()
-    #model = resnet19()
+
+    if args.dataset == "dvscifar10":
+        data_path="/home2/ahasssan/data/cifar_dvs_pt_30/"
+        din = [48, 48]
+        train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
+    elif args.dataset == "ncars":
+        data_path="/home2/jmeng15/data/ncars_pt/"
+        din = [50, 60]
+        train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=args.batch_size, size=din)
+
+    model = VGGSNN7(num_classes=2)
     model.T = args.T
     logger.info(model)
 
@@ -202,12 +212,6 @@ def main_worker(local_rank, nprocs, args):
     optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, eta_min=0, T_max=args.epochs)
     cudnn.benchmark = True
-    
-    ### Own DataPath and Data-Loader####
-    data_path="/home2/ahasssan/data/cifar_dvs_pt_30/"
-    din = [48, 48]
-    train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
-    ####################################
 
     train_sampler = torch.utils.data.distributed.DistributedSampler(
          train_loader)
@@ -224,9 +228,7 @@ def main_worker(local_rank, nprocs, args):
         val_sampler.set_epoch(epoch)
         logger_dict["ep"] = epoch+1
 
-        lr = adjust_learning_rate(optimizer, epoch, args)
-
-        logger_dict["lr"] = lr
+        logger_dict["lr"] = scheduler.get_lr()[0]
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, local_rank,
@@ -268,7 +270,7 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
                              prefix="Epoch: [{}]".format(epoch))
 
     # switch to train mode
-    mean=1
+    mean = 1.0 
     model.train()
     end = time.time()
     for i, (images, target) in enumerate(train_loader):
@@ -279,55 +281,55 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
         images = images.float()
         target = target.cuda(local_rank, non_blocking=True)
 
-        # compute output
-        if (images.size(0)<16):
-            pass
+        vthre = AverageMeter('vth', ':.4e')
+        output = model(images)
+        mean_out = torch.mean(output, dim=1)
+        if not args.TET:
+            loss = criterion(mean_out, target)
         else:
-            vthre = AverageMeter('vth', ':.4e')
-            output = model(images)
-            # print(images.shape)
-            # summary(model, (1, 3, 48, 48))
-            # import pdb;pdb.set_trace()
-            mean_out = torch.mean(output, dim=1)
-            if not args.TET:
-                loss = criterion(mean_out, target)
-            else:
-                loss = TET_loss(output, target, criterion, mean, args.lamb) ### Change mean to args.mean
+            loss = TET_loss(output, target, criterion, mean, args.lamb) ### Change mean to args.mean
 
         # measure accuracy and record loss
+        if args.dataset == "ncars":
+            acc1, = accuracy(mean_out, target, topk=(1, ))
+        else:
             acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
-            cnt = 0
-            for name, param in model.named_parameters():
-                if 'thresh' in name:
-                    if cnt > 0:
-                        vthre.update(param.item())
-                cnt += 1
+        
+        cnt = 0
+        for name, param in model.named_parameters():
+            if 'thresh' in name:
+                if cnt > 0:
+                    vthre.update(param.item())
+            cnt += 1
 
-            torch.distributed.barrier()
+        torch.distributed.barrier()
 
-            reduced_loss = reduce_mean(loss, args.nprocs)
-            reduced_acc1 = reduce_mean(acc1, args.nprocs)
-            reduced_acc5 = reduce_mean(acc5, args.nprocs)
+        reduced_loss = reduce_mean(loss, args.nprocs)
+        reduced_acc1 = reduce_mean(acc1, args.nprocs)
+        # reduced_acc5 = reduce_mean(acc5, args.nprocs)
 
-            losses.update(reduced_loss.item(), images.size(0))
-            top1.update(reduced_acc1.item(), images.size(0))
-            top5.update(reduced_acc5.item(), images.size(0))
+        losses.update(reduced_loss.item(), images.size(0))
+        top1.update(reduced_acc1.item(), images.size(0))
+        # top5.update(reduced_acc5.item(), images.size(0))
 
-            # compute gradient and do SGD step
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-            # measure elapsed time
-            batch_time.update(time.time() - end)
-            end = time.time()
+        # compute gradient and do SGD step
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        # measure elapsed time
+        batch_time.update(time.time() - end)
+        end = time.time()
 
-            if i % args.print_freq == 0:
-                progress.display(i)
+        if i % args.print_freq == 0:
+            progress.display(i)
 
-            logger_dict["train_loss"] = losses.avg
-            logger_dict["train_top1"] = top1.avg
-            logger_dict["train_top5"] = top5.avg
-            logger_dict["avg_vth"] = vthre.avg
+        logger_dict["train_loss"] = losses.avg
+        logger_dict["train_top1"] = top1.avg
+        # logger_dict["train_top5"] = top5.avg
+        logger_dict["avg_vth"] = vthre.avg
+        
+        # update regularization target
+        if args.lvth:
             mean = vthre.avg
 
 
@@ -358,17 +360,18 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 loss = criterion(mean_out, target)
 
                 # measure accuracy and record loss
-                acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
+                # acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
+                acc1, = accuracy(mean_out, target, topk=(1,))
 
                 torch.distributed.barrier()
 
                 reduced_loss = reduce_mean(loss, args.nprocs)
                 reduced_acc1 = reduce_mean(acc1, args.nprocs)
-                reduced_acc5 = reduce_mean(acc5, args.nprocs)
+                # reduced_acc5 = reduce_mean(acc5, args.nprocs)
 
                 losses.update(reduced_loss.item(), images.size(0))
                 top1.update(reduced_acc1.item(), images.size(0))
-                top5.update(reduced_acc5.item(), images.size(0))
+                # top5.update(reduced_acc5.item(), images.size(0))
 
                 # measure elapsed time
                 batch_time.update(time.time() - end)
@@ -379,7 +382,7 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
 
                 logger_dict["valid_loss"] = losses.avg
                 logger_dict["valid_top1"] = top1.avg
-                logger_dict["valid_top5"] = top5.avg
+                # logger_dict["valid_top5"] = top5.avg
                 
 
         # TODO: this should also be done with the ProgressMeter

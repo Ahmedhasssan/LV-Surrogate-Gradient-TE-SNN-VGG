@@ -39,8 +39,8 @@ class BasicBlock(nn.Module):
 
         self.conv1_s = tdLayer(self.conv1, self.bn1)
         self.conv2_s = tdLayer(self.conv2, self.bn2)
-        self.spike = ZIFArchTan()
-        #self.spike = LIFSpike()
+        # self.spike = ZIFArchTan()
+        self.spike = LIFSpike()
 
     def forward(self, x):
         identity = x
@@ -92,10 +92,10 @@ class ResNet(nn.Module):
         self.fc1_s = tdLayer(self.fc1)
         self.fc2 = nn.Linear(256, num_classes)
         self.fc2_s = tdLayer(self.fc2)
-        #self.spike = LIFSpike()
-        self.spike = ZIFArchTan()
+        self.spike = LIFSpike()
+        # self.spike = ZIFArchTan()
         #self.spike_out = LIFSpikeOut()
-        self.T = 1
+        self.T = 20
 
         # Zero-initialize the last BN in each residual branch,
         # so that the residual branch starts with zeros, and each residual block behaves like an identity.
@@ -133,6 +133,8 @@ class ResNet(nn.Module):
 
     def _forward_impl(self, x):
         # See note [TorchScript super()]
+        x = x.unsqueeze(1)
+        x = x.repeat(1, self.T, 1, 1, 1)
         x = self.conv1_s(x)
         x = self.spike(x)
 

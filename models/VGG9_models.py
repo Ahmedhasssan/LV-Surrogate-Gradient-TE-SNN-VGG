@@ -1,8 +1,7 @@
-import random
 from models.layers import *
 
 class VGGSNN9(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes):
         super(VGGSNN9, self).__init__()
         pool = SeqToANNContainer(nn.AvgPool2d(2))
         self.features = nn.Sequential(
@@ -23,7 +22,7 @@ class VGGSNN9(nn.Module):
         )
         W = int(48/2/2/2/2)
         self.classifier1 = SeqToANNContainer(nn.Linear(512*W*W,512))
-        self.classifier2 = SeqToANNContainer(nn.Linear(512,10))
+        self.classifier2 = SeqToANNContainer(nn.Linear(512,num_classes))
         self.drop = SeqToANNContainer(nn.Dropout(0.5))
         for m in self.modules():
             if isinstance(m, nn.Conv2d):

@@ -18,7 +18,8 @@ class SeqToANNContainer(nn.Module):
         y_shape = [x_seq.shape[0], x_seq.shape[1]]
         y_seq = self.module(x_seq.flatten(0, 1).contiguous())
         y_shape.extend(y_seq.shape[1:])
-        return y_seq.view(y_shape)
+        out = y_seq.view(y_shape)
+        return out
 
 class Layer_LP(nn.Module):
     def __init__(self, in_plane, out_plane, kernel_size, stride, padding, wbit):
@@ -69,7 +70,7 @@ class Layer(nn.Module):
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        #self.act = LIFSpike()
+        # self.act = LIFSpike()
         self.act=ZIFArchTan()
 
     def forward(self,x):
@@ -154,7 +155,7 @@ class ZIFArchTan(nn.Module):
         self.tau = tau
         self.gama = gama
         self.thresh = nn.Parameter(torch.Tensor([thresh]), requires_grad=True)
-        # self.salpha = nn.Parameter(torch.Tensor([1.0]), requires_grad=True)
+        self.salpha = nn.Parameter(torch.Tensor([1.0]), requires_grad=False)
 
     def forward(self, x):
         mem = 0
@@ -203,7 +204,7 @@ class LIFSpike(nn.Module):
         T = x.shape[1]
         for t in range(T):
             mem = mem * self.tau + x[:, t, ...]
-            spike = self.act(mem - self.thresh, self.gama)
+            spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
             mem = (1 - spike) * mem
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)
