@@ -70,9 +70,11 @@ class Layer(nn.Module):
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        # self.act = LIFSpike()
-        self.act=ZIFArchTan()
-
+        if in_plane > 3:
+            self.act = ZIFArchTan()
+        else:
+            self.act = LIFSpike()
+        
     def forward(self,x):
         x = self.fwd(x)
         x = self.act(x)
@@ -85,8 +87,8 @@ class SConv(nn.Module):
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        #self.act = LIFSpike()
-        self.act=ZIFArchTan()
+        self.act = LIFSpike()
+        # self.act=ZIFArchTan()
 
     def forward(self,x):
         x = self.fwd(x)
@@ -117,32 +119,24 @@ class sigmoid(torch.autograd.Function):
     @staticmethod
     def forward(ctx, x, gama, salpha, thresh):
             out= heaviside(x)
-            #out=out.mul(salpha.half())
             ctx.alpha = thresh
             L = torch.tensor([gama])
             ctx.save_for_backward(x, out, L, thresh)
             return out
-
+    
     @staticmethod
     def backward(ctx, grad_output):
-        grad_input = None
-        grad_alpha = None
-        grad_input = grad_output.clone()
-        if ctx.needs_input_grad[0]:
-            sgax = (ctx.saved_tensors[0] * ctx.alpha).sigmoid_()
-            grad_input = grad_output * (1. - sgax) * sgax * ctx.alpha
         (input, out, others, thresh) = ctx.saved_tensors
         gama = others[0].item()
+        grad_input = grad_output.clone()
         tmp = (1 / gama) * (1 / gama) * ((gama - input.abs()).clamp(min=0))
         grad_input = grad_input * tmp
 
-        # s = ctx.saved_tensors[1]
-        # grad_alpha = torch.sum(grad_output.mul(s)).view(-1)
-
-        mask_alpha = input.ge(0).float()
-        mask = grad_input*mask_alpha
-        grad_vth = torch.sum(grad_output.mul(mask)).view(-1).mul(-1)
-        return grad_input, None, None, grad_vth
+        sig = torch.sigmoid(input)
+        fire = input.ge(0).float()
+        grad_thre = grad_input.mul(sig)
+        grad_thre = torch.sum(grad_thre.mul(fire)).view(-1).mul(-1)
+        return grad_input, None, None, grad_thre
 
 class ZIFArchTan(nn.Module):
     r"""

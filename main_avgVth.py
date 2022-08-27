@@ -24,7 +24,7 @@ import sys
 sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -177,7 +177,7 @@ def main_worker(local_rank, nprocs, args):
     best_acc1 = .0
 
     dist.init_process_group(backend='nccl',
-                            init_method='tcp://127.0.0.1:23456',
+                            init_method='tcp://127.0.0.1:23457',
                             world_size=args.nprocs,
                             rank=local_rank)
     load_names = None
@@ -192,8 +192,12 @@ def main_worker(local_rank, nprocs, args):
         data_path="/home2/jmeng15/data/ncars_pt/"
         din = [50, 60]
         train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=args.batch_size, size=din)
+    elif args.dataset == "ibm_gesture":
+        data_path = "/home2/jmeng15/data/ibm_gesture_pt"
+        din = [48, 48]
+        train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
 
-    model = VGGSNN7(num_classes=2)
+    model = VGGSNN7(num_classes=10)
     model.T = args.T
     logger.info(model)
 
