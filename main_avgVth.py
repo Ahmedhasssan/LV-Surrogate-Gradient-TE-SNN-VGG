@@ -260,7 +260,6 @@ def main_worker(local_rank, nprocs, args):
         if is_best and save_names != None:
             if args.local_rank == 0:
                 torch.save(model.module.state_dict(), save_names)
-# logger
 
 
 def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, logger, logger_dict):

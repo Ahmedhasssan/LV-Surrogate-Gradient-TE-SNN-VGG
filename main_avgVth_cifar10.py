@@ -24,7 +24,7 @@ import sys
 sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -88,6 +88,11 @@ parser.add_argument('--TET',
                     type=bool,
                     metavar='N',
                     help='if use Temporal Efficient Training (default: True)')
+parser.add_argument('--lvth',
+                    default=False,
+                    type=bool,
+                    metavar='N',
+                    help='if use learnable threshold (default: True)')
 parser.add_argument('--lamb',
                     default=0.90,
                     type=float,
@@ -103,6 +108,10 @@ parser.add_argument('--model',
                     type=str,
                     metavar='N',
                     help='model for training')
+parser.add_argument('--save_path', 
+                    type=str, 
+                    default='./save/', 
+                    help='Folder to save checkpoints and log.')
 args = parser.parse_args()
 
 
@@ -136,7 +145,7 @@ def main_worker(local_rank, nprocs, args):
         #print(f'Mkdir {./save}.')
     else:
         pass
-    save_path="./save/cifar10/VGG9/TETbaseline/"
+    save_path=args.save_path
     log_file="training.log"
 
     # args = parser.parse_args()
@@ -273,14 +282,12 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
         else:
             vthre = AverageMeter('vth', ':.4e')
             output = model(images)
-            # print(images.shape)
-            # summary(model, (1, 3, 48, 48))
-            # import pdb;pdb.set_trace()
+
             mean_out = torch.mean(output, dim=1)
             if not args.TET:
                 loss = criterion(mean_out, target)
             else:
-                loss = TET_loss(output, target, criterion, mean, args.lamb) ### Change mean to args.mean
+                loss = TET_loss(output, target, criterion, mean, args.lamb)
 
         # measure accuracy and record loss
             acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
@@ -316,7 +323,10 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
             logger_dict["train_top1"] = top1.avg
             logger_dict["train_top5"] = top5.avg
             logger_dict["avg_vth"] = vthre.avg
-            mean = vthre.avg
+            # update regularization target
+            
+            if args.lvth:
+                mean = vthre.avg
 
 
 def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict):
