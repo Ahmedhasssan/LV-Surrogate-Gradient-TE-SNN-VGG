@@ -5,21 +5,15 @@ import time
 import logging
 import warnings
 import torch.nn as nn
-import torch.nn.functional as F
 import torch.nn.parallel
 import torch.backends.cudnn as cudnn
 import torch.distributed as dist
 import torch.optim
 import torch.multiprocessing as mp
-from torchsummary import summary
 import torch.utils.data
 import torch.utils.data.distributed
 from models.resnet_models import resnet19
-from models.VGG9_models import VGGSNN9, VGGSNN9_4bit
 from models.VGG9_cifar_models import CIFARVGGSNN9
-from models.VGG11_model import VGGSNN11, VGGSNN11_4bit
-from models.MobilenetSNN import MBNETSNN
-import data_loaders
 import shutil
 import torch
 import tabulate
@@ -30,7 +24,7 @@ import sys
 sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0,1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
