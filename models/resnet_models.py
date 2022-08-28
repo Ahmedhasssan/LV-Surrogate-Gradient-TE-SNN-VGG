@@ -39,28 +39,28 @@ class BasicBlock(nn.Module):
 
         self.conv1_s = tdLayer(self.conv1, self.bn1)
         self.conv2_s = tdLayer(self.conv2, self.bn2)
-        # self.spike = ZIFArchTan()
-        self.spike = LIFSpike()
+        self.spike1 = LIFSpike()
+        self.spike2 = LIFSpike()
 
     def forward(self, x):
         identity = x
 
         out = self.conv1_s(x)
-        out = self.spike(out)
+        out = self.spike1(out)
         out = self.conv2_s(out)
 
         if self.downsample is not None:
             identity = self.downsample(x)
 
         out += identity
-        out = self.spike(out)
+        out = self.spike2(out)
 
         return out
 
 class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes=10, zero_init_residual=False,
                  groups=1, width_per_group=64, replace_stride_with_dilation=None,
-                 norm_layer=None):
+                 norm_layer=None, T=6):
         super(ResNet, self).__init__()
         if norm_layer is None:
             norm_layer = tdBatchNorm
@@ -69,8 +69,6 @@ class ResNet(nn.Module):
         self.inplanes = 64
         self.dilation = 1
         if replace_stride_with_dilation is None:
-            # each element in the tuple indicates if we should replace
-            # the 2x2 stride with a dilated convolution instead
             replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
             raise ValueError("replace_stride_with_dilation should be None "
@@ -92,14 +90,11 @@ class ResNet(nn.Module):
         self.fc1_s = tdLayer(self.fc1)
         self.fc2 = nn.Linear(256, num_classes)
         self.fc2_s = tdLayer(self.fc2)
-        self.spike = LIFSpike()
-        # self.spike = ZIFArchTan()
-        #self.spike_out = LIFSpikeOut()
-        self.T = 20
+        
+        self.spike1= LIFSpike()
+        self.spike2= LIFSpike()
+        self.T = T
 
-        # Zero-initialize the last BN in each residual branch,
-        # so that the residual branch starts with zeros, and each residual block behaves like an identity.
-        # This improves the model by 0.2~0.3% according to https://arxiv.org/abs/1706.02677
         if zero_init_residual:
             for m in self.modules():
                 if isinstance(m, BasicBlock):
@@ -132,11 +127,10 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
-        # See note [TorchScript super()]
         x = x.unsqueeze(1)
         x = x.repeat(1, self.T, 1, 1, 1)
         x = self.conv1_s(x)
-        x = self.spike(x)
+        x = self.spike1(x)
 
         x = self.layer1(x)
         x = self.layer2(x)
@@ -145,9 +139,8 @@ class ResNet(nn.Module):
         x = self.avgpool(x)
         x = torch.flatten(x, 2)
         x = self.fc1_s(x)
-        x = self.spike(x)
+        x = self.spike2(x)
         x = self.fc2_s(x)
-        #x = self.spike_out(x)
         return x
 
     def forward(self, x):

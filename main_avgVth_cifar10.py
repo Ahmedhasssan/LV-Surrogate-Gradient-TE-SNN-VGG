@@ -184,8 +184,8 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    model = CIFARVGGSNN9(T=args.T)
-    # model = resnet19(num_classes=10)
+    # model = CIFARVGGSNN9(T=args.T)
+    model = resnet19(num_classes=10, T=args.T)
     logger.info(model)
 
     if load_names != None:
