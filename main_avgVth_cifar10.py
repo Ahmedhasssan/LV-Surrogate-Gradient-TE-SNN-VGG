@@ -24,7 +24,7 @@ import sys
 sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -200,7 +200,8 @@ def main_worker(local_rank, nprocs, args):
                                                       device_ids=[local_rank])
 
     criterion = nn.CrossEntropyLoss().cuda(local_rank)
-    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, eta_min=0, T_max=args.epochs)
     cudnn.benchmark = True
     
