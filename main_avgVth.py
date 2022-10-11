@@ -15,6 +15,7 @@ import torch.utils.data.distributed
 from models.resnet_models import resnet19
 from models.VGG9_models import VGGSNN9
 from models.VGG7_models import VGGSNN7
+from models.MobilenetSNN import MBNETSNN
 import shutil
 import torch
 import tabulate
@@ -112,6 +113,8 @@ parser.add_argument('--save_path',
                     type=str, 
                     default='./save/', 
                     help='Folder to save checkpoints and log.')
+parser.add_argument('--resume', default='', type=str, help='path of the pretrained model')
+
 args = parser.parse_args()
 
 
@@ -181,11 +184,11 @@ def main_worker(local_rank, nprocs, args):
                             world_size=args.nprocs,
                             rank=local_rank)
     load_names = None
-    save_names = None
+    save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
 
     if args.dataset == "dvscifar10":
-        data_path="/home2/ahasssan/data/cifar_dvs_pt_30/"
+        data_path="/home2/jmeng15/data/dvs_cifar10"
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
@@ -197,7 +200,8 @@ def main_worker(local_rank, nprocs, args):
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
 
-    model = VGGSNN7(num_classes=10)
+    # model = VGGSNN7(num_classes=10)
+    model = MBNETSNN()
     model.T = args.T
     logger.info(model)
 
@@ -221,11 +225,13 @@ def main_worker(local_rank, nprocs, args):
          train_loader)
     val_sampler = torch.utils.data.distributed.DistributedSampler(val_loader)
 
-    if args.evaluate:
-        validate(val_loader, model, criterion, local_rank, args)
-        return
     logger = logger
     logger_dict = {}
+
+    if args.evaluate:
+        validate(val_loader, model, criterion, local_rank, args, logger, logger_dict)
+        return
+
     for epoch in range(args.start_epoch, args.epochs):
         t1 = time.time()
         train_sampler.set_epoch(epoch)
@@ -387,8 +393,7 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 logger_dict["valid_top1"] = top1.avg
                 # logger_dict["valid_top5"] = top5.avg
                 
-
-        # TODO: this should also be done with the ProgressMeter
+        
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1,
                                                                     top5=top5))
 

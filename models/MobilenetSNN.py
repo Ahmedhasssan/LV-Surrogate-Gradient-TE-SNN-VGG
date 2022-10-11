@@ -7,27 +7,18 @@ import torch.nn as nn
 from models.layers import *
 
 class MBNETSNN(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes=10):
         super(MBNETSNN, self).__init__()
-        pool = SeqToANNContainer(nn.AvgPool2d(2))
         self.features = nn.Sequential(
-            SConv(3,32,3,1,1),
-            pool,
-            SConvDW(32,64,3,1,1),
-            SConvDW(64,64,3,1,1),
-            pool,
-            SConvDW(64,128,3,1,1),
-            SConvDW(128,128,3,1,1),
-            pool,
-            SConvDW(128,256,3,1,1),
-            SConvDW(256,512,3,1,1),
-            pool,
+            SConv(3, 32, 3, 1, 1, pool=True),
+            SConvDW(32, 64, 3, 1, 1, pool=True),
+            SConvDW(64, 64, 3, 1, 1, pool=True),
+            SConvDW(64, 128, 3, 1, 1, pool=True),
+            SConvDW(128, 128, 3, 1, 1, pool=True),
         )
 
         W = int(48/2/2/2/2)
-        self.classifier1 = SeqToANNContainer(nn.Linear(512*W*W*4,512))
-        self.classifier2 = SeqToANNContainer(nn.Linear(512,10))
-        self.drop = SeqToANNContainer(Dropout(0.5))
+        self.classifier1 = SeqToANNContainer(nn.Linear(1152, num_classes))
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
@@ -36,6 +27,4 @@ class MBNETSNN(nn.Module):
         x = self.features(input)
         x = torch.flatten(x, 2)
         x = self.classifier1(x)
-        x = self.drop(x)
-        x = self.classifier2(x)
         return x

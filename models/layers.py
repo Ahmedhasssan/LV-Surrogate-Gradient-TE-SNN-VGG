@@ -81,34 +81,52 @@ class Layer(nn.Module):
         return x
 
 class SConv(nn.Module):
-    def __init__(self,in_plane,out_plane,kernel_size,stride,padding):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False):
         super(SConv, self).__init__()
         self.fwd = SeqToANNContainer(
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act = LIFSpike()
+        self.act = LIFSpike(thresh=0.5, tau=0.0625)
         # self.act=ZIFArchTan()
 
-    def forward(self,x):
+        if pool:
+            self.pool = SeqToANNContainer(nn.AvgPool2d(2))
+        else:
+            self.pool = nn.Identity()
+
+    def forward(self, x):
         x = self.fwd(x)
+        x = self.pool(x)
         x = self.act(x)
         return x
 
 class SConvDW(nn.Module):
-    def __init__(self,in_plane,out_plane,kernel_size,stride,padding):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False):
         super(SConvDW, self).__init__()
-        self.fwd = SeqToANNContainer(
+        self.dw = SeqToANNContainer(
             nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
+            nn.BatchNorm2d(in_plane)
+        )
+        self.pw = SeqToANNContainer(
             nn.Conv2d(in_plane,out_plane,1,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        #self.act = LIFSpike()
-        self.act=ZIFArchTan()
+        self.act1 = LIFSpike(thresh=0.5, tau=0.0625)
+        self.act2 = LIFSpike(thresh=0.5, tau=0.0625)
+        # self.act=ZIFArchTan()
+        
+        if pool:
+            self.pool = SeqToANNContainer(nn.AvgPool2d(2))
+        else:
+            self.pool = nn.Identity()
 
     def forward(self,x):
-        x = self.fwd(x)
-        x = self.act(x)
+        x = self.dw(x)
+        x = self.act1(x)
+        x = self.pw(x)
+        x = self.pool(x)
+        x = self.act2(x)
         return x
 
 ######### Surrogate Gradient Sigmoid ############
@@ -202,6 +220,9 @@ class LIFSpike(nn.Module):
             mem = (1 - spike) * mem
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)
+    
+    def extra_repr(self) -> str:
+        return super().extra_repr()+"thre={:.3f}, tau={:.3f}".format(self.thresh, self.tau)
 
 
 def add_dimention(x, T):
