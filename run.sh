@@ -1,4 +1,4 @@
-PYTHON="/home2/jmeng15/anaconda3/envs/myenv/bin/python"
+PYTHON="/home2/ahasssan/anaconda3/envs/myenv/bin/python"
 
 lambda=0.1
 
@@ -10,5 +10,5 @@ $PYTHON main_avgVth.py \
     --lamb ${lambda} \
     --batch-size 32 \
     --lvth False \
-    --save_path "./save/DVS_CIFAR10/TET/MBNet/training_lambda${lambda}_PreSpikeAvgPool/"
+    --save_path "./save/DVS_CIFAR10/TET/MBNetWide/training_lambda${lambda}_LV_PreSpikeAvgPool/"
     

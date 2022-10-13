@@ -87,8 +87,8 @@ class SConv(nn.Module):
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act = LIFSpike(thresh=0.5, tau=0.0625)
-        # self.act=ZIFArchTan()
+        #self.act = LIFSpike(thresh=0.5, tau=0.0625)
+        self.act=ZIFArchTan()
 
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -112,9 +112,9 @@ class SConvDW(nn.Module):
             nn.Conv2d(in_plane,out_plane,1,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act1 = LIFSpike(thresh=0.5, tau=0.0625)
-        self.act2 = LIFSpike(thresh=0.5, tau=0.0625)
-        # self.act=ZIFArchTan()
+        #self.act1 = LIFSpike(thresh=0.5, tau=0.0625)
+        #self.act2 = LIFSpike(thresh=0.5, tau=0.0625)
+        self.act=ZIFArchTan()
         
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -123,10 +123,12 @@ class SConvDW(nn.Module):
 
     def forward(self,x):
         x = self.dw(x)
-        x = self.act1(x)
+        #x = self.act1(x)
+        x = self.act(x)
         x = self.pw(x)
         x = self.pool(x)
-        x = self.act2(x)
+        x = self.act(x)
+        #x = self.act2(x)
         return x
 
 ######### Surrogate Gradient Sigmoid ############
