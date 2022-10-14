@@ -100,14 +100,13 @@ class Layer(nn.Module):
         return x
 
 class SConv(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, neg=-5.0):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, membit=2, neg=-1.0):
         super(SConv, self).__init__()
         self.fwd = SeqToANNContainer(
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, neg=neg)
-        #self.act=ZIFArchTan()
+        self.act = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, membit=membit, neg=neg)
 
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -121,7 +120,7 @@ class SConv(nn.Module):
         return x
 
 class SConvDW(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, neg=-5.0):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, membit=2, neg=-1.0):
         super(SConvDW, self).__init__()
         self.dw = SeqToANNContainer(
             nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
@@ -131,9 +130,9 @@ class SConvDW(nn.Module):
             nn.Conv2d(in_plane,out_plane,1,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act1 = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, neg=neg)
-        self.act2 = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, neg=neg)
-        #self.act=ZIFArchTan()
+        self.act1 = LIFSpike(thresh=0.5, tau=0.0625, membit=membit, neg=neg)
+        self.act2 = LIFSpike(thresh=0.5, tau=0.0625, membit=membit, neg=neg)
+        # self.act=ZIFArchTan()
         
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -143,10 +142,8 @@ class SConvDW(nn.Module):
     def forward(self,x):
         x = self.dw(x)
         x = self.act1(x)
-        #x = self.act(x)
         x = self.pw(x)
         x = self.pool(x)
-        #x = self.act(x)
         x = self.act2(x)
         return x
 
@@ -224,7 +221,7 @@ class ZIF(torch.autograd.Function):
         return grad_input, None, None, None
 
 class LIFSpike(nn.Module):
-    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, neg=-1.0):
+    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, membit=2, neg=-1.0):
         super(LIFSpike, self).__init__()
         self.act = ZIF.apply
         self.thresh = thresh
@@ -238,7 +235,7 @@ class LIFSpike(nn.Module):
         
         # mem quant
         qrange = self.thresh - self.neg
-        self.scale = (2**2-1) / qrange
+        self.scale = (2**membit-1) / qrange
 
 
     def forward(self, x):
@@ -252,6 +249,7 @@ class LIFSpike(nn.Module):
 
             mem = mem * self.tau + x[:, t, ...]
             mem = torch.clamp(mem, min=self.neg)
+
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
 
             # # inference only
