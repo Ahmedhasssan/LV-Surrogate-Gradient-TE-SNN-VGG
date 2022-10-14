@@ -222,7 +222,7 @@ class ZIF(torch.autograd.Function):
         return grad_input, None, None, None
 
 class LIFSpike(nn.Module):
-    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, neg=-5.0):
+    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, neg=-1.0):
         super(LIFSpike, self).__init__()
         self.act = ZIF.apply
         self.thresh = thresh
@@ -233,6 +233,11 @@ class LIFSpike(nn.Module):
         self.ratio = AverageMeter()
         self.neg = neg
         self.min = AverageMeter()
+        
+        # mem quant
+        qrange = self.thresh - self.neg
+        self.scale = (2**2-1) / qrange
+
 
     def forward(self, x):
         mem = 0
@@ -244,18 +249,22 @@ class LIFSpike(nn.Module):
                 neg = prev.lt(self.neg).float()
 
             mem = mem * self.tau + x[:, t, ...]
-            # mem = torch.clamp(mem, min=self.neg, max=0.525)
+            mem = torch.clamp(mem, min=self.neg)
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
 
-            # inference only
-            self.min.update(mem.min().item())
-            if t > 1:
-                neg_fire = neg.mul(spike.data)
-                r = neg_fire[neg_fire.eq(1.0)].numel() / spike.numel()
-                self.ratio.update(r)
+            # # inference only
+            # self.min.update(mem.min().item())
+            # if t > 1:
+            #     neg_fire = neg.mul(spike.data)
+            #     r = neg_fire[neg_fire.eq(1.0)].numel() / spike.numel()
+            #     self.ratio.update(r)
 
             mem = (1 - spike) * mem
-
+            
+            # quantization (for inference only, comment this out for training)
+            mem = mem.mul(self.scale).round().div(self.scale)
+            print("After reset, unique level of mem = {}".format(mem.unique()))
+            
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)
     
