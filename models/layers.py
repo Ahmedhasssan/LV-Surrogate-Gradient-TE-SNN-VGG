@@ -5,6 +5,25 @@ from torch import Tensor
 import math
 from models.q_modules import *
 
+class AverageMeter(object):
+    """Computes and stores the average and current value"""
+
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.val = 0
+        self.avg = 0
+        self.sum = 0
+        self.count = 0
+
+    def update(self, val, n=1):
+        self.val = val
+        self.sum += val * n
+        self.count += n
+        self.avg = self.sum / self.count
+
+
 class SeqToANNContainer(nn.Module):
     # Chunk of code is form spikingjelly https://github.com/fangwei123456/spikingjelly
     def __init__(self, *args):
@@ -81,14 +100,14 @@ class Layer(nn.Module):
         return x
 
 class SConv(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, neg=-5.0):
         super(SConv, self).__init__()
         self.fwd = SeqToANNContainer(
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        #self.act = LIFSpike(thresh=0.5, tau=0.0625)
-        self.act=ZIFArchTan()
+        self.act = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, neg=neg)
+        #self.act=ZIFArchTan()
 
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -102,7 +121,7 @@ class SConv(nn.Module):
         return x
 
 class SConvDW(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, neg=-5.0):
         super(SConvDW, self).__init__()
         self.dw = SeqToANNContainer(
             nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
@@ -112,9 +131,9 @@ class SConvDW(nn.Module):
             nn.Conv2d(in_plane,out_plane,1,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        #self.act1 = LIFSpike(thresh=0.5, tau=0.0625)
-        #self.act2 = LIFSpike(thresh=0.5, tau=0.0625)
-        self.act=ZIFArchTan()
+        self.act1 = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, neg=neg)
+        self.act2 = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, neg=neg)
+        #self.act=ZIFArchTan()
         
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -123,12 +142,12 @@ class SConvDW(nn.Module):
 
     def forward(self,x):
         x = self.dw(x)
-        #x = self.act1(x)
-        x = self.act(x)
+        x = self.act1(x)
+        #x = self.act(x)
         x = self.pw(x)
         x = self.pool(x)
-        x = self.act(x)
-        #x = self.act2(x)
+        #x = self.act(x)
+        x = self.act2(x)
         return x
 
 ######### Surrogate Gradient Sigmoid ############
@@ -205,21 +224,40 @@ class ZIF(torch.autograd.Function):
         return grad_input, None, None, None
 
 class LIFSpike(nn.Module):
-    def __init__(self, thresh=1.0, tau=0.5, gama=1.0):
+    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, neg=-5.0):
         super(LIFSpike, self).__init__()
         self.act = ZIF.apply
         self.thresh = thresh
         self.tau = tau
         self.gama = gama
+        
+        # spike ratio of negative potential
+        self.ratio = AverageMeter()
+        self.neg = neg
+        self.min = AverageMeter()
 
     def forward(self, x):
         mem = 0
         spike_pot = []
         T = x.shape[1]
         for t in range(T):
+            if t == 1:
+                prev = mem.clone()
+                neg = prev.lt(self.neg).float()
+
             mem = mem * self.tau + x[:, t, ...]
+            # mem = torch.clamp(mem, min=self.neg, max=0.525)
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
+
+            # inference only
+            self.min.update(mem.min().item())
+            # if t > 1:
+            #     neg_fire = neg.mul(spike.data)
+            #     r = neg_fire[neg_fire.eq(1.0)].numel() / spike.numel()
+            #     self.ratio.update(r)
+
             mem = (1 - spike) * mem
+
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)
     

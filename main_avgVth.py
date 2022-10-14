@@ -15,7 +15,9 @@ import torch.utils.data.distributed
 from models.resnet_models import resnet19
 from models.VGG9_models import VGGSNN9
 from models.VGG7_models import VGGSNN7
-from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool
+from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool, MBNETSNN_NegQ
+from models.MobilenetSNN import MBNETSNN
+from models.layers import LIFSpike
 import shutil
 import torch
 import tabulate
@@ -183,7 +185,9 @@ def main_worker(local_rank, nprocs, args):
                             init_method='tcp://127.0.0.1:23457',
                             world_size=args.nprocs,
                             rank=local_rank)
+
     load_names = None
+    #load_names = args.resume
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
 
@@ -202,8 +206,9 @@ def main_worker(local_rank, nprocs, args):
 
     # model = VGGSNN7(num_classes=10)
     #model = MBNETSNN()
-    model = MBNETSNNWIDE()
+    #model = MBNETSNNWIDE()
     #model = MBNETSNNWIDE_PostPool()
+    model = MBNETSNN_NegQ()
     model.T = args.T
     logger.info(model)
 
@@ -232,6 +237,9 @@ def main_worker(local_rank, nprocs, args):
 
     if args.evaluate:
         validate(val_loader, model, criterion, local_rank, args, logger, logger_dict)
+        for n, m in model.named_modules():
+            if isinstance(m, LIFSpike):
+                print("Spike:{}, Thre={:.2f}, Avg neg fire ratio = {:.4f}%, Min Mem={:.2f}".format(n, m.neg, m.ratio.avg*100, m.min.avg))
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -394,7 +402,6 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 logger_dict["valid_loss"] = losses.avg
                 logger_dict["valid_top1"] = top1.avg
                 # logger_dict["valid_top5"] = top5.avg
-                
         
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1,
                                                                     top5=top5))

@@ -10,5 +10,5 @@ $PYTHON main_avgVth.py \
     --lamb ${lambda} \
     --batch-size 32 \
     --lvth False \
-    --save_path "./save/DVS_CIFAR10/TET/MBNetWide/training_lambda${lambda}_LV_PreSpikeAvgPool/"
+    --save_path "./save/DVS_CIFAR10/TET/MBNetWide/training_lambda${lambda}_PreSpikeAvgPool_NegQ/"
     
