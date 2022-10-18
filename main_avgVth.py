@@ -127,6 +127,10 @@ parser.add_argument('--membit',
                     default=2,
                     type=int,
                     help='quantization precision of the accumulated membrane potential')
+parser.add_argument('--wbit',
+                    default=4,
+                    type=int,
+                    help='quantization precision of the weights')
 
 args = parser.parse_args()
 
@@ -197,8 +201,12 @@ def main_worker(local_rank, nprocs, args):
                             world_size=args.nprocs,
                             rank=local_rank)
 
-    # load_names = None
-    load_names = args.resume
+    # if args.evaluate:
+    #     load_names = args.resume
+    # else:
+    #     load_names = None
+    # load_names = args.resume
+    load_names = None
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
 

@@ -12,7 +12,7 @@ $PYTHON main_avgVth.py \
     --lvth False \
     --neg -1.0 \
     --membit 2 \
-    --resume "./save/DVS_CIFAR10/TET/MBNet/training_lambda0.1_PreSpikeAvgPool/checkpoint.pth.tar" \
-    --save_path "./save/DVS_CIFAR10/TET/MBNet/training_lambda0.1_PreSpikeAvgPool/eval/" \
+    --resume "./save/DVS_CIFAR10/TET/QMBNet/training_lambda0.1_PreSpikeAvgPool_W4bit/checkpoint.pth.tar" \
+    --save_path "./save/DVS_CIFAR10/TET/QMBNet/training_lambda0.1_PreSpikeAvgPool_W4bit/eval/" \
     --evaluate
     

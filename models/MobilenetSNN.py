@@ -4,16 +4,17 @@ Full-sized spiking mobilenet
 import torch
 import torch.nn as nn
 from models.layers import *
+from .methods import QLinear
 
 class MBNETSNN(nn.Module):
-    def __init__(self, num_classes=10, membit=2, neg=-1.0):
+    def __init__(self, num_classes=10, membit=2, neg=-1.0, wbit=4):
         super(MBNETSNN, self).__init__()
         self.features = nn.Sequential(
-            SConv(3, 32, 3, 1, 1, pool=True, membit=membit, neg=neg),
-            SConvDW(32, 64, 3, 1, 1, pool=True, membit=membit, neg=neg),
-            SConvDW(64, 64, 3, 1, 1, pool=True, membit=membit, neg=neg),
-            SConvDW(64, 128, 3, 1, 1, pool=True, membit=membit, neg=neg),
-            SConvDW(128, 128, 3, 1, 1, pool=True, membit=membit, neg=neg),
+            SConv(3, 32, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
+            SConvDW(32, 64, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
+            SConvDW(64, 64, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
+            SConvDW(64, 128, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
+            SConvDW(128, 128, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
         )
 
         W = int(48/2/2/2/2)
