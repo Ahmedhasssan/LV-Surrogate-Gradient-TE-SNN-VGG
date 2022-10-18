@@ -7,14 +7,14 @@ from models.layers import *
 from .methods import QLinear
 
 class MBNETSNN(nn.Module):
-    def __init__(self, num_classes=10, membit=2, neg=-1.0, wbit=4):
+    def __init__(self, num_classes=10, membit=2, neg=-1.0, wbit=4, thres=1.0, tau=0.5):
         super(MBNETSNN, self).__init__()
         self.features = nn.Sequential(
-            SConv(3, 32, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
-            SConvDW(32, 64, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
-            SConvDW(64, 64, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
-            SConvDW(64, 128, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
-            SConvDW(128, 128, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit),
+            SConv(3, 32, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(32, 64, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(64, 64, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(64, 128, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(128, 128, 3, 1, 1, pool=True, membit=membit, neg=neg, wbit=wbit, thres=thres, tau=tau),
         )
 
         W = int(48/2/2/2/2)

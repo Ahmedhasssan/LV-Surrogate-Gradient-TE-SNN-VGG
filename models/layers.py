@@ -101,14 +101,20 @@ class Layer(nn.Module):
         return x
 
 class SConv(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, membit=2, neg=-1.0, wbit=4):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, 
+                membit=2, neg=-1.0, wbit=4, thres=1.0, tau=0.5):
         super(SConv, self).__init__()
-        self.fwd = SeqToANNContainer(
-            nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
-            # QConv2d(in_plane, out_plane, kernel_size, stride, padding, wbit=4, abit=32),
-            nn.BatchNorm2d(out_plane)
-        )
-        self.act = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, membit=membit, neg=neg)
+        if wbit < 32:
+            self.fwd = SeqToANNContainer(
+                QConv2d(in_plane, out_plane, kernel_size, stride, padding, wbit=wbit, abit=32),
+                nn.BatchNorm2d(out_plane)
+            )
+        else:
+            self.fwd = SeqToANNContainer(
+                nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
+                nn.BatchNorm2d(out_plane)
+            )
+        self.act = LIFSpike(thresh=thres, tau=tau, gama=1.0, membit=membit, neg=neg)
 
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -122,20 +128,30 @@ class SConv(nn.Module):
         return x
 
 class SConvDW(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, membit=2, neg=-1.0, wbit=4):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, 
+                membit=2, neg=-1.0, wbit=4, thres=1.0, tau=0.5):
         super(SConvDW, self).__init__()
-        self.dw = SeqToANNContainer(
-            nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
-            # QConv2d(in_plane,in_plane,kernel_size,stride,padding, wbit=wbit, abit=32),
-            nn.BatchNorm2d(in_plane)
-        )
-        self.pw = SeqToANNContainer(
-            nn.Conv2d(in_plane,out_plane,1,stride,padding),
-            # QConv2d(in_plane, out_plane, 1, stride, padding, wbit=wbit, abit=32),
-            nn.BatchNorm2d(out_plane)
-        )
-        self.act1 = LIFSpike(thresh=1.0, tau=0.5, membit=membit, neg=neg)
-        self.act2 = LIFSpike(thresh=1.0, tau=0.5, membit=membit, neg=neg)
+        if wbit < 32:
+            self.dw = SeqToANNContainer(
+                QConv2d(in_plane,in_plane,kernel_size,stride,padding, wbit=wbit, abit=32),
+                nn.BatchNorm2d(in_plane)
+            )
+            self.pw = SeqToANNContainer(
+                QConv2d(in_plane, out_plane, 1, stride, padding, wbit=wbit, abit=32),
+                nn.BatchNorm2d(out_plane)
+            )
+        else:
+            self.dw = SeqToANNContainer(
+                nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
+                nn.BatchNorm2d(in_plane)
+            )
+            self.pw = SeqToANNContainer(
+                nn.Conv2d(in_plane,out_plane,1,stride,padding),
+                nn.BatchNorm2d(out_plane)
+            )
+        self.act1 = LIFSpike(thresh=thres, tau=tau, membit=membit, neg=neg)
+        self.act2 = LIFSpike(thresh=thres, tau=tau, membit=membit, neg=neg)
+        
         # self.act=ZIFArchTan()
         
         if pool:

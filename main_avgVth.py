@@ -131,6 +131,16 @@ parser.add_argument('--wbit',
                     default=4,
                     type=int,
                     help='quantization precision of the weights')
+parser.add_argument('--thres',
+                    default=1.0,
+                    type=float,
+                    metavar='N',
+                    help='Potential threshold')
+parser.add_argument('--tau',
+                    default=0.5,
+                    type=float,
+                    metavar='N',
+                    help='Leak factor')
 
 args = parser.parse_args()
 
@@ -224,7 +234,7 @@ def main_worker(local_rank, nprocs, args):
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
 
     # model = VGGSNN7(num_classes=10)
-    model = MBNETSNN(membit=args.membit, neg=args.neg)
+    model = MBNETSNN(membit=args.membit, neg=args.neg, wbit=args.wbit, thres=args.thres, tau=args.tau)
     #model = MBNETSNNWIDE()
     #model = MBNETSNNWIDE_PostPool()
     # model = MBNETSNN_NegQ()
