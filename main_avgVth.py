@@ -215,8 +215,8 @@ def main_worker(local_rank, nprocs, args):
     #     load_names = args.resume
     # else:
     #     load_names = None
-    # load_names = args.resume
-    load_names = None
+    load_names = args.resume
+    # load_names = None
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
 
@@ -268,7 +268,7 @@ def main_worker(local_rank, nprocs, args):
         validate(val_loader, model, criterion, local_rank, args, logger, logger_dict)
         for n, m in model.named_modules():
             if isinstance(m, LIFSpike):
-                print("Spike:{}, Thre={:.2f}, Avg neg fire ratio = {:.4f}%, Min Mem={:.2f}".format(n, m.neg, m.ratio.avg*100, m.min.avg))
+                print("Spike:{}, Thre={:.2f}, Avg mem sparse ratio = {:.4f}%, Avg conv out spars={:.2f}".format(n, m.neg, m.ratio.avg*100, m.conv_spars.avg))
         return
 
     for epoch in range(args.start_epoch, args.epochs):

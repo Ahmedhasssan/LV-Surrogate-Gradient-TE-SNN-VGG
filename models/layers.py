@@ -6,6 +6,14 @@ import math
 # from models.q_modules import *
 from .methods import QConv2d
 
+def power_quant(x, value_s):
+    shape = x.shape
+    xhard = x.view(-1)
+    value_s = value_s.type_as(x)
+    idxs = (xhard.unsqueeze(0) - value_s.unsqueeze(1)).abs().min(dim=0)[1]  # project to nearest quantization level
+    xhard = value_s[idxs].view(shape)
+    return xhard
+
 class AverageMeter(object):
     """Computes and stores the average and current value"""
 
@@ -102,7 +110,7 @@ class Layer(nn.Module):
 
 class SConv(nn.Module):
     def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, 
-                membit=2, neg=-1.0, wbit=4, thres=1.0, tau=0.5):
+                membit=2, neg=-2.0, wbit=4, thres=1.0, tau=0.5):
         super(SConv, self).__init__()
         if wbit < 32:
             self.fwd = SeqToANNContainer(
@@ -241,7 +249,7 @@ class ZIF(torch.autograd.Function):
         return grad_input, None, None, None
 
 class LIFSpike(nn.Module):
-    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, membit=2, neg=-1.0):
+    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, membit=2, neg=-2.0):
         super(LIFSpike, self).__init__()
         self.act = ZIF.apply
         self.thresh = thresh
@@ -252,10 +260,12 @@ class LIFSpike(nn.Module):
         self.ratio = AverageMeter()
         self.neg = neg
         self.min = AverageMeter()
+        self.conv_spars = AverageMeter()
         
         # # mem quant
-        # qrange = self.thresh - self.neg
-        # self.scale = (2**membit-1) / qrange
+        qrange = self.thresh - self.neg # thresh = 1.0, neg = -2.0
+        self.levels = torch.tensor([self.neg + 0.125*i for i in range(int(qrange//0.125))])
+        self.scale = (2**membit-1) / qrange 
 
 
     def forward(self, x):
@@ -268,7 +278,12 @@ class LIFSpike(nn.Module):
             #     neg = prev.lt(self.neg).float()
 
             mem = mem * self.tau + x[:, t, ...]
-            # mem = torch.clamp(mem, min=self.neg)
+            # conv = x[:, t, ...]
+            # cr = conv[conv.eq(0.0)].numel() / conv.numel()
+            # self.conv_spars.update(cr)
+            
+            # mem = x[:, t, ...]
+            mem = torch.clamp(mem, min=self.neg)
 
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
 
@@ -276,14 +291,19 @@ class LIFSpike(nn.Module):
             # self.min.update(mem.min().item())
             # if t > 1:
             #     neg_fire = neg.mul(spike.data)
-            #     r = neg_fire[neg_fire.eq(1.0)].numel() / spike.numel()
-            #     self.ratio.update(r)
+            
+            
 
             mem = (1 - spike) * mem
+            mem = power_quant(mem, self.levels)
             
             # quantization (for inference only, comment this out for training)
             # mem = mem.mul(self.scale).round().div(self.scale)
-            # print("After reset, unique level of mem = {}".format(mem.unique()))
+            # r = mem[mem.eq(0.0)].numel() / mem.numel()
+
+            
+            # self.ratio.update(r)
+            print("After reset, unique level of mem = {}".format(mem.unique()))
             
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)

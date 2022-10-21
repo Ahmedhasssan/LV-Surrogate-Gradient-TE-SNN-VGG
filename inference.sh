@@ -10,9 +10,12 @@ $PYTHON main_avgVth.py \
     --lamb ${lambda} \
     --batch-size 32 \
     --lvth False \
-    --neg -1.0 \
-    --membit 2 \
-    --resume "./save/DVS_CIFAR10/TET/MBNetWide/training_lambda0.1_PreSpikeAvgPool_Thre1.0_tau0.5/checkpoint.pth.tar" \
-    --save_path "./save/DVS_CIFAR10/TET/MBNetWide/training_lambda0.1_PreSpikeAvgPool_Thre1.0_tau0.5/eval/" \
+    --neg -2.0 \
+    --membit 4 \
+    --thres 1.0 \
+    --tau 0.5 \
+    --wbit 32 \
+    --resume "./save/DVS_CIFAR10/TET/MBNet/training_lambda0.1_PreSpikeAvgPool_Thre1.0_tau0.5/checkpoint.pth.tar" \
+    --save_path "./save/DVS_CIFAR10/TET/MBNet/training_lambda0.1_PreSpikeAvgPool_Thre1.0_tau0.5/eval/" \
     --evaluate
     
