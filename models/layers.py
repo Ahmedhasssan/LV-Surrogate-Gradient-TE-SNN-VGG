@@ -106,7 +106,7 @@ class SConv(nn.Module):
             nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act = LIFSpike(thresh=0.5, tau=0.0625, gama=1.0, membit=membit, neg=neg)
+        self.act = LIFSpike(thresh=1, tau=0.5, gama=1.0, membit=membit, neg=neg)
 
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -130,8 +130,8 @@ class SConvDW(nn.Module):
             nn.Conv2d(in_plane,out_plane,1,stride,padding),
             nn.BatchNorm2d(out_plane)
         )
-        self.act1 = LIFSpike(thresh=0.5, tau=0.0625, membit=membit, neg=neg)
-        self.act2 = LIFSpike(thresh=0.5, tau=0.0625, membit=membit, neg=neg)
+        self.act1 = LIFSpike(thresh=1, tau=0.5, membit=membit, neg=neg)
+        self.act2 = LIFSpike(thresh=1, tau=0.5, membit=membit, neg=neg)
         # self.act=ZIFArchTan()
         
         if pool:
@@ -206,7 +206,7 @@ class ZIFArchTan(nn.Module):
 class ZIF(torch.autograd.Function):
     @staticmethod
     def forward(ctx, input, gama, salpha, thresh):
-        out = (input > 0).float()
+        out = (input >= 0).float()
         L = torch.tensor([gama])
         ctx.save_for_backward(input, out, L)
         return out
@@ -220,9 +220,19 @@ class ZIF(torch.autograd.Function):
         grad_input = grad_input * tmp
         return grad_input, None, None, None
 
+def power_quant(x, grid):
+        shape = x.shape
+        xhard = x.view(-1)
+        value_s = grid.type_as(x)
+        idxs = (xhard.unsqueeze(0) - value_s.unsqueeze(1)).abs().min(dim=0)[1]
+        xhard = value_s[idxs].view(shape)
+        return xhard
+
 class LIFSpike(nn.Module):
     def __init__(self, thresh=1.0, tau=0.5, gama=1.0, membit=2, neg=-1.0):
         super(LIFSpike, self).__init__()
+        #self.act_alpha = torch.nn.Parameter(torch.tensor(1.0))
+        self.act_alpha = 2
         self.act = ZIF.apply
         self.thresh = thresh
         self.tau = tau
@@ -248,23 +258,11 @@ class LIFSpike(nn.Module):
                 neg = prev.lt(self.neg).float()
 
             mem = mem * self.tau + x[:, t, ...]
-            mem = torch.clamp(mem, min=self.neg)
-
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
-
-            # # inference only
-            # self.min.update(mem.min().item())
-            # if t > 1:
-            #     neg_fire = neg.mul(spike.data)
-            #     r = neg_fire[neg_fire.eq(1.0)].numel() / spike.numel()
-            #     self.ratio.update(r)
-
             mem = (1 - spike) * mem
-            
-            # quantization (for inference only, comment this out for training)
-            mem = mem.mul(self.scale).round().div(self.scale)
-            print("After reset, unique level of mem = {}".format(mem.unique()))
-            
+            mem = log2(mem, self.act_alpha)
+            # print(mem.unique())
+            # print(len(mem.unique()))
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)
     

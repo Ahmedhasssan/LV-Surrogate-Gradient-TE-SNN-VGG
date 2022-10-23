@@ -4,7 +4,7 @@ import random
 import numpy as np
 from os import listdir
 from os.path import join
-import event_representations as er
+#import event_representations as er
 from numpy.lib import recfunctions as rfn
 
 from dvsloader.prophesee import dat_events_tools

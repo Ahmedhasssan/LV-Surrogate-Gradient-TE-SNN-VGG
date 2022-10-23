@@ -15,7 +15,7 @@ import torch.utils.data.distributed
 from models.resnet_models import resnet19
 from models.VGG9_models import VGGSNN9
 from models.VGG7_models import VGGSNN7
-from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool, MBNETSNN_NegQ
+from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool, MBNETSNN_NegQ, MBNETSNNWIDE_PostPool_NegQ
 from models.MobilenetSNN import MBNETSNN
 from models.layers import LIFSpike
 import shutil
@@ -197,13 +197,13 @@ def main_worker(local_rank, nprocs, args):
                             world_size=args.nprocs,
                             rank=local_rank)
 
-    # load_names = None
+    #load_names = None
     load_names = args.resume
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
 
     if args.dataset == "dvscifar10":
-        data_path="/home2/jmeng15/data/dvs_cifar10"
+        data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
@@ -216,10 +216,11 @@ def main_worker(local_rank, nprocs, args):
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
 
     # model = VGGSNN7(num_classes=10)
-    model = MBNETSNN(membit=args.membit, neg=args.neg)
+    #model = MBNETSNN(membit=args.membit, neg=args.neg)
     #model = MBNETSNNWIDE()
     #model = MBNETSNNWIDE_PostPool()
-    # model = MBNETSNN_NegQ()
+    model = MBNETSNN_NegQ()
+    #model = MBNETSNNWIDE_PostPool_NegQ()
     model.T = args.T
     logger.info(model)
 
