@@ -127,6 +127,20 @@ parser.add_argument('--membit',
                     default=2,
                     type=int,
                     help='quantization precision of the accumulated membrane potential')
+parser.add_argument('--wbit',
+                    default=4,
+                    type=int,
+                    help='quantization precision of the weights')
+parser.add_argument('--thres',
+                    default=1.0,
+                    type=float,
+                    metavar='N',
+                    help='Potential threshold')
+parser.add_argument('--tau',
+                    default=0.5,
+                    type=float,
+                    metavar='N',
+                    help='Leak factor')
 
 args = parser.parse_args()
 
@@ -197,8 +211,9 @@ def main_worker(local_rank, nprocs, args):
                             world_size=args.nprocs,
                             rank=local_rank)
 
-    #load_names = None
+    # load_names = None
     load_names = args.resume
+    # load_names = None
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
 
@@ -216,7 +231,7 @@ def main_worker(local_rank, nprocs, args):
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
 
     # model = VGGSNN7(num_classes=10)
-    #model = MBNETSNN(membit=args.membit, neg=args.neg)
+    model = MBNETSNN(membit=args.membit, neg=args.neg)
     #model = MBNETSNNWIDE()
     #model = MBNETSNNWIDE_PostPool()
     model = MBNETSNN_NegQ()
@@ -251,7 +266,7 @@ def main_worker(local_rank, nprocs, args):
         validate(val_loader, model, criterion, local_rank, args, logger, logger_dict)
         for n, m in model.named_modules():
             if isinstance(m, LIFSpike):
-                print("Spike:{}, Thre={:.2f}, Avg neg fire ratio = {:.4f}%, Min Mem={:.2f}".format(n, m.neg, m.ratio.avg*100, m.min.avg))
+                print("Spike:{}, Thre={:.2f}, Avg mem sparse ratio = {:.4f}%, Avg conv out spars={:.2f}".format(n, m.neg, m.ratio.avg*100, m.conv_spars.avg))
         return
 
     for epoch in range(args.start_epoch, args.epochs):

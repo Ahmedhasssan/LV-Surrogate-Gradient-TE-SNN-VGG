@@ -3,7 +3,16 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 import math
-from models.q_modules import *
+# from models.q_modules import *
+from .methods import QConv2d
+
+def power_quant(x, value_s):
+    shape = x.shape
+    xhard = x.view(-1)
+    value_s = value_s.type_as(x)
+    idxs = (xhard.unsqueeze(0) - value_s.unsqueeze(1)).abs().min(dim=0)[1]  # project to nearest quantization level
+    xhard = value_s[idxs].view(shape)
+    return xhard
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -100,13 +109,20 @@ class Layer(nn.Module):
         return x
 
 class SConv(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, membit=2, neg=-1.0):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, 
+                membit=2, neg=-2.0, wbit=4, thres=1.0, tau=0.5):
         super(SConv, self).__init__()
-        self.fwd = SeqToANNContainer(
-            nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
-            nn.BatchNorm2d(out_plane)
-        )
-        self.act = LIFSpike(thresh=1, tau=0.5, gama=1.0, membit=membit, neg=neg)
+        if wbit < 32:
+            self.fwd = SeqToANNContainer(
+                QConv2d(in_plane, out_plane, kernel_size, stride, padding, wbit=wbit, abit=32),
+                nn.BatchNorm2d(out_plane)
+            )
+        else:
+            self.fwd = SeqToANNContainer(
+                nn.Conv2d(in_plane,out_plane,kernel_size,stride,padding),
+                nn.BatchNorm2d(out_plane)
+            )
+        self.act = LIFSpike(thresh=thres, tau=tau, gama=1.0, membit=membit, neg=neg)
 
         if pool:
             self.pool = SeqToANNContainer(nn.AvgPool2d(2))
@@ -120,18 +136,30 @@ class SConv(nn.Module):
         return x
 
 class SConvDW(nn.Module):
-    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, membit=2, neg=-1.0):
+    def __init__(self, in_plane, out_plane, kernel_size, stride, padding, pool=False, 
+                membit=2, neg=-1.0, wbit=4, thres=1.0, tau=0.5):
         super(SConvDW, self).__init__()
-        self.dw = SeqToANNContainer(
-            nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
-            nn.BatchNorm2d(in_plane)
-        )
-        self.pw = SeqToANNContainer(
-            nn.Conv2d(in_plane,out_plane,1,stride,padding),
-            nn.BatchNorm2d(out_plane)
-        )
-        self.act1 = LIFSpike(thresh=1, tau=0.5, membit=membit, neg=neg)
-        self.act2 = LIFSpike(thresh=1, tau=0.5, membit=membit, neg=neg)
+        if wbit < 32:
+            self.dw = SeqToANNContainer(
+                QConv2d(in_plane,in_plane,kernel_size,stride,padding, wbit=wbit, abit=32),
+                nn.BatchNorm2d(in_plane)
+            )
+            self.pw = SeqToANNContainer(
+                QConv2d(in_plane, out_plane, 1, stride, padding, wbit=wbit, abit=32),
+                nn.BatchNorm2d(out_plane)
+            )
+        else:
+            self.dw = SeqToANNContainer(
+                nn.Conv2d(in_plane,in_plane,kernel_size,stride,padding),
+                nn.BatchNorm2d(in_plane)
+            )
+            self.pw = SeqToANNContainer(
+                nn.Conv2d(in_plane,out_plane,1,stride,padding),
+                nn.BatchNorm2d(out_plane)
+            )
+        self.act1 = LIFSpike(thresh=thres, tau=tau, membit=membit, neg=neg)
+        self.act2 = LIFSpike(thresh=thres, tau=tau, membit=membit, neg=neg)
+        
         # self.act=ZIFArchTan()
         
         if pool:
@@ -229,7 +257,7 @@ def power_quant(x, grid):
         return xhard
 
 class LIFSpike(nn.Module):
-    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, membit=2, neg=-1.0):
+    def __init__(self, thresh=1.0, tau=0.5, gama=1.0, membit=2, neg=-2.0):
         super(LIFSpike, self).__init__()
         #self.act_alpha = torch.nn.Parameter(torch.tensor(1.0))
         self.act_alpha = 2
@@ -242,10 +270,12 @@ class LIFSpike(nn.Module):
         self.ratio = AverageMeter()
         self.neg = neg
         self.min = AverageMeter()
+        self.conv_spars = AverageMeter()
         
-        # mem quant
-        qrange = self.thresh - self.neg
-        self.scale = (2**membit-1) / qrange
+        # # mem quant
+        qrange = self.thresh - self.neg # thresh = 1.0, neg = -2.0
+        self.levels = torch.tensor([self.neg + 0.125*i for i in range(int(qrange//0.125))])
+        self.scale = (2**membit-1) / qrange 
 
 
     def forward(self, x):
@@ -253,9 +283,9 @@ class LIFSpike(nn.Module):
         spike_pot = []
         T = x.shape[1]
         for t in range(T):
-            if t == 1:
-                prev = mem.clone()
-                neg = prev.lt(self.neg).float()
+            # if t == 1:
+            #     prev = mem.clone()
+            #     neg = prev.lt(self.neg).float()
 
             mem = mem * self.tau + x[:, t, ...]
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
