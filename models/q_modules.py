@@ -56,7 +56,6 @@ def build_power_value(B=2, additive=True):
     values = values.mul(1.0 / torch.max(values))
     return values
 
-
 def weight_quantization(b, grids, power=True):
     def uniform_quant(x, b):
         xdiv = x.mul((2 ** b - 1))
@@ -140,7 +139,12 @@ def act_quantization(b, grid, power=True):
         shape = x.shape
         xhard = x.view(-1)
         value_s = grid.type_as(x)
-        idxs = (xhard.unsqueeze(0) - value_s.unsqueeze(1)).abs().min(dim=0)[1]
+        #idxs = (xhard.unsqueeze(0) - value_s.unsqueeze(1)).abs().min(dim=0)[1]
+        ## For flooring
+        d = xhard.unsqueeze(0) - value_s.unsqueeze(1)
+        d[d.lt(0.)]=1.0
+        idxs = d.abs().min(dim=0)[1]
+        ################
         xhard = value_s[idxs].view(shape)
         return xhard
 

@@ -12,7 +12,7 @@ $PYTHON main_avgVth.py \
     --lvth False \
     --neg -1.0 \
     --membit 2 \
-    --resume "/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/save/new/greater_equal_Vth/DVS_CIFAR10/TET/MBNetWide/training_lambda0.1_PreSpikeAvgPool_log2_fix_values_new_grid/checkpoint.pth.tar" \
+    --resume "/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/save/low_precision/8T/Flooring/DVS_CIFAR10/TET/MBNetWide/training_lambda0.1_PreSpikeAvgPool_NegQ/checkpoint.pth.tar" \
     --save_path "./save/DVS_CIFAR10/TET/MBNet/training_PreSpikeAvgPool/eval/fixmap_alpha2" \
     --evaluate
     
