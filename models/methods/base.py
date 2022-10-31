@@ -85,12 +85,11 @@ class QBaseConv2d(nn.Conv2d):
             self.fm_max.data = torch.tensor(fm).float()
 
     def forward(self, input:Tensor):
-        wq = self.wq(self.weight)
-        
+        wq = self.wq(self.weight)    
         xq = self.aq(input)
-        print("# of unique levels = {}".format(len(wq.unique())))
+
         y = F.conv2d(xq, wq, self.bias, self.stride, self.padding, self.dilation, self.groups)
-        
+
         # save integer weights
         if not self.train_flag:
             self.qweight.data = wq
@@ -160,4 +159,26 @@ class ConvBNReLU(nn.Module):
         x = self.bn(x)
         x = self.scaler(x)
         x = self.relu(x)
+        return x
+
+
+class ConvBN(nn.Module):
+    """
+    Template of module fusion
+    """
+    def __init__(self, in_channels:int, out_channels:int, kernel_size:int, stride:int=1, 
+                padding:int=0, dilation:int=1, groups:int=1, bias:bool=True, wbit:int=32, abit:int=32, train_flag=True):
+        super(ConvBN, self).__init__()
+        
+        # modules
+        self.conv = QBaseConv2d(in_channels, out_channels, kernel_size, stride, padding, dilation, groups, bias, wbit, abit, train_flag)
+        self.bn = nn.BatchNorm2d(out_channels)
+
+        # scaler and shifter
+        self.scaler = MulShift()
+    
+    def forward(self, input:Tensor):
+        x = self.conv(input)
+        x = self.bn(x)
+        x = self.scaler(x)
         return x

@@ -62,6 +62,7 @@ class SAWB(QBase):
     
     def evalFunc(self, input: Tensor):
         out = self.q(input)
+        # out = out.div(self.scale)
         return out
 
 class RCF(QBase):
