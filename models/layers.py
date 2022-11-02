@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 import math
-from models.q_modules import *
+from models.q_modules import log2
 from .methods import QConv2d
 
 def power_quant(x, value_s):
@@ -287,8 +287,6 @@ class LIFSpike(nn.Module):
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
             mem = (1 - spike) * mem
             mem = log2(mem, self.act_alpha)
-            print(mem.unique())
-            print(len(mem.unique()))
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)
     

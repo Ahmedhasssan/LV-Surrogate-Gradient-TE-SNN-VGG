@@ -17,7 +17,7 @@ from models.VGG9_models import VGGSNN9
 from models.VGG7_models import VGGSNN7
 from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool, MBNETSNN_NegQ, MBNETSNNWIDE_PostPool_NegQ, MBNETSNN_NegQ_LP
 from models.MobilenetSNN import MBNETSNN
-from models.layers import LIFSpike
+from models.t2c import LayerFuser, T2C
 import shutil
 import torch
 import tabulate
@@ -223,12 +223,19 @@ def main_worker(local_rank, nprocs, args):
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
     if args.dataset == "dvscifar10":
+<<<<<<< HEAD
         if args.T == 30:
             data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
         elif args.T == 10:
             data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
         elif args.T == 8:
             data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
+=======
+        # data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
+        #data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
+        # data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
+        data_path="/home2/jmeng15/data/cifar_dvs_pt_30/"
+>>>>>>> ddb0387d625c3722d8a540cf254e6cf6e5ac95e3
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
@@ -276,9 +283,18 @@ def main_worker(local_rank, nprocs, args):
 
     if args.evaluate:
         validate(val_loader, model, criterion, local_rank, args, logger, logger_dict)
-        for n, m in model.named_modules():
-            if isinstance(m, LIFSpike):
-                print("Spike:{}, Thre={:.2f}, Avg mem sparse ratio = {:.4f}%, Avg conv out spars={:.2f}".format(n, m.neg, m.ratio.avg*100, m.conv_spars.avg))
+
+        # t2c
+        nn2c = T2C(model=model, swl=16, sfl=13, args=args)
+        qnn = nn2c.nn2chip()
+        validate(val_loader, qnn, criterion, local_rank, args, logger, logger_dict)
+        nn2c.get_info(qnn)
+
+        # save
+        state = qnn.state_dict()
+        filename = "t2c_model.pth.tar"
+        path = os.path.join(args.save_path, filename)
+        torch.save(state, path)
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -298,7 +314,6 @@ def main_worker(local_rank, nprocs, args):
 
         scheduler.step()
 
-        
         # remember best acc@1 and save checkpoint
         is_best = acc1 > best_acc1
         best_acc1 = max(acc1, best_acc1)
@@ -418,8 +433,8 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 loss = criterion(mean_out, target)
 
                 # measure accuracy and record loss
-                # acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
-                acc1, = accuracy(mean_out, target, topk=(1,))
+                acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
+                # acc1, = accuracy(mean_out, target, topk=(1,))
 
                 torch.distributed.barrier()
 
@@ -440,7 +455,8 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
 
                 logger_dict["valid_loss"] = losses.avg
                 logger_dict["valid_top1"] = top1.avg
-                # logger_dict["valid_top5"] = top5.avg
+                logger_dict["valid_top5"] = top5.avg
+                # break
         
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1,
                                                                     top5=top5))
