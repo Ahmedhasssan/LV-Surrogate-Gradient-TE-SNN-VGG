@@ -76,11 +76,6 @@ parser.add_argument('--seed',
                     default=1000,
                     type=int,
                     help='seed for initializing training. ')
-parser.add_argument('--T',
-                    default=30,
-                    type=int,
-                    metavar='N',
-                    help='snn simulation time (default: 2)')
 parser.add_argument('--means',
                     default=1.0,
                     type=float,
@@ -107,7 +102,7 @@ parser.add_argument('--dataset',
                     metavar='N',
                     help='dataset')
 parser.add_argument('--model',
-                    default='ResNet19',
+                    default='MBNETSNN_LP',
                     type=str,
                     metavar='N',
                     help='model for training')
@@ -141,6 +136,16 @@ parser.add_argument('--tau',
                     type=float,
                     metavar='N',
                     help='Leak factor')
+parser.add_argument('--T',
+                    default=30,
+                    type=int,
+                    metavar='N',
+                    help='Time Stamps')
+parser.add_argument('--process',
+                    default='training',
+                    type=str,
+                    metavar='N',
+                    help='Process type training/inference')
 
 args = parser.parse_args()
 
@@ -211,16 +216,19 @@ def main_worker(local_rank, nprocs, args):
                             world_size=args.nprocs,
                             rank=local_rank)
 
-    #load_names = None
-    load_names = args.resume
-    # load_names = None
+    if args.process == 'training':
+        load_names = None
+    else:
+        load_names = args.resume
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
-
     if args.dataset == "dvscifar10":
-        #data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
-        #data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
-        data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
+        if args.T == 30:
+            data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
+        elif args.T == 10:
+            data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
+        elif args.T == 8:
+            data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
@@ -231,14 +239,15 @@ def main_worker(local_rank, nprocs, args):
         data_path = "/home2/jmeng15/data/ibm_gesture_pt"
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
-
-    # model = VGGSNN7(num_classes=10)
-    #model = MBNETSNN(membit=args.membit, neg=args.neg)
-    #model = MBNETSNNWIDE()
-    #model = MBNETSNNWIDE_PostPool()
-    #model = MBNETSNN_NegQ()
-    #model = MBNETSNNWIDE_PostPool_NegQ()
-    model = MBNETSNN_NegQ_LP()
+    
+    if args.model == "MBNETSNN_LP":
+        model = MBNETSNN_NegQ_LP()
+    elif args.model == "MBNETSNN":
+        model = MBNETSNN()
+    elif args.model == "MBNETSNNWIDE_PostPool_NegQ":
+        model = MBNETSNNWIDE_PostPool_NegQ()
+    elif args.model == "VGGSNN7":
+        model = VGGSNN7()
     model.T = args.T
     logger.info(model)
 
