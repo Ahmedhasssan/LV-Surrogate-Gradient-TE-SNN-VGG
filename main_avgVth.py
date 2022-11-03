@@ -223,19 +223,12 @@ def main_worker(local_rank, nprocs, args):
     save_names = os.path.join(save_path, "checkpoint.pth.tar")
 
     if args.dataset == "dvscifar10":
-<<<<<<< HEAD
         if args.T == 30:
             data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
         elif args.T == 10:
             data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
         elif args.T == 8:
             data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
-=======
-        # data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
-        #data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
-        # data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
-        data_path="/home2/jmeng15/data/cifar_dvs_pt_30/"
->>>>>>> ddb0387d625c3722d8a540cf254e6cf6e5ac95e3
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
