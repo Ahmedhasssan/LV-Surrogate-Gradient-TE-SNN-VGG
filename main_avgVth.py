@@ -225,8 +225,11 @@ def main_worker(local_rank, nprocs, args):
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
-        data_path="/home2/jmeng15/data/ncars_pt/"
-        din = [50, 60]
+        if args.T == 30:
+            data_path="/home2/jmeng15/data/ncars_pt/"
+        elif args.T == 16:
+            data_path="/home2/jmeng15/data/ncars_pt_t16/"
+        din = [64, 64]
         train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=args.batch_size, size=din)
     elif args.dataset == "ibm_gesture":
         data_path = "/home2/jmeng15/data/ibm_gesture_pt"
@@ -234,7 +237,7 @@ def main_worker(local_rank, nprocs, args):
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
 
     # model = VGGSNN7(num_classes=10)
-    model = MBNETSNN(membit=args.membit, neg=args.neg, wbit=args.wbit, thres=args.thres, tau=args.tau)
+    model = MBNETSNN(num_classes=num_classes, membit=args.membit, neg=args.neg, wbit=args.wbit, thres=args.thres, tau=args.tau)
     #model = MBNETSNNWIDE()
     #model = MBNETSNNWIDE_PostPool()
     # model = MBNETSNN_NegQ()

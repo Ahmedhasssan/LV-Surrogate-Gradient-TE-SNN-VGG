@@ -33,7 +33,7 @@ class SAWB(QBase):
             n_lv = 2 ** (self.nbit - 1) - 1
             self.alpha.data = 1/self.z[0] * std - self.z[1]/self.z[0] * m
         elif self.qmode == 'asymm':
-            n_lv = (2 ** (self.nbit) - 1)/2
+            n_lv = 2 ** (self.nbit - 1) - 1
             self.alpha.data = 2*m
         else:
             raise NotImplemented
@@ -112,8 +112,8 @@ class QLinear(QBaseLinear):
         super(QLinear, self).__init__(in_features, out_features, bias, wbit, abit, train_flag)
 
         # quantizers
-        self.wq = SAWB(self.wbit, train_flag=True, qmode="symm")
-        self.aq = RCF(self.abit, train_flag=True, alpha=10.0)
+        self.wq = SAWB(self.wbit, train_flag=True, qmode="asymm")
+        self.aq = nn.Identity()
 
     def trainFunc(self, input):
         return super().trainFunc(input)

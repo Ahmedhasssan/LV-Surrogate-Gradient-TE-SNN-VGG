@@ -263,9 +263,9 @@ class LIFSpike(nn.Module):
         self.conv_spars = AverageMeter()
         
         # # mem quant
-        qrange = self.thresh - self.neg # thresh = 1.0, neg = -2.0
-        self.levels = torch.tensor([self.neg + 0.125*i for i in range(int(qrange//0.125))])
-        self.scale = (2**membit-1) / qrange 
+        # qrange = self.thresh - self.neg # thresh = 1.0, neg = -2.0
+        # self.levels = torch.tensor([self.neg + 0.125*i for i in range(int(qrange//0.125))])
+        # self.scale = (2**membit-1) / qrange 
 
 
     def forward(self, x):
@@ -283,7 +283,7 @@ class LIFSpike(nn.Module):
             # self.conv_spars.update(cr)
             
             # mem = x[:, t, ...]
-            mem = torch.clamp(mem, min=self.neg)
+            # mem = torch.clamp(mem, min=self.neg)
 
             spike = self.act(mem - self.thresh, self.gama, 1.0, 1.0)
 
@@ -292,18 +292,16 @@ class LIFSpike(nn.Module):
             # if t > 1:
             #     neg_fire = neg.mul(spike.data)
             
-            
-
-            mem = (1 - spike) * mem
-            mem = power_quant(mem, self.levels)
+            # mem = (1 - spike) * mem
+            # mem = power_quant(mem, self.levels)
             
             # quantization (for inference only, comment this out for training)
             # mem = mem.mul(self.scale).round().div(self.scale)
             # r = mem[mem.eq(0.0)].numel() / mem.numel()
 
             
-            # self.ratio.update(r)
-            print("After reset, unique level of mem = {}".format(mem.unique()))
+            # # self.ratio.update(r)
+            # print("After reset, unique level of mem = {}".format(mem.unique()))
             
             spike_pot.append(spike)
         return torch.stack(spike_pot, dim=1)

@@ -88,7 +88,6 @@ class QBaseConv2d(nn.Conv2d):
         wq = self.wq(self.weight)
         
         xq = self.aq(input)
-        print("# of unique levels = {}".format(len(wq.unique())))
         y = F.conv2d(xq, wq, self.bias, self.stride, self.padding, self.dilation, self.groups)
         
         # save integer weights

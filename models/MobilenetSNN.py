@@ -18,7 +18,11 @@ class MBNETSNN(nn.Module):
         )
 
         W = int(48/2/2/2/2)
-        self.classifier1 = SeqToANNContainer(nn.Linear(1152, num_classes))
+        if wbit < 32:
+            self.classifier1 = SeqToANNContainer(QLinear(1152, num_classes, wbit=wbit))
+        else:
+            self.classifier1 = SeqToANNContainer(nn.Linear(1152, num_classes))
+            
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
