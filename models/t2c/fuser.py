@@ -2,7 +2,7 @@ import torch
 import copy
 import torch.nn as nn
 
-from ..methods import QBaseConv2d, ConvBN
+from ..methods import QBaseConv2d, ConvBN, QBaseLinear
 from ..layers import SeqToANNContainer
 
 class LayerFuser(object):
@@ -75,6 +75,9 @@ class LayerFuser(object):
 
                                 # replace the module
                                 setattr(ll, "module", fm)
+                    if isinstance(layer, QBaseLinear):
+                        print(layer)
+
                             
                         setattr(layer, ln, ll)
                     setattr(m, k, layer)

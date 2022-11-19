@@ -139,18 +139,21 @@ class MBNETSNNWIDE_PostPool_NegQ(nn.Module):
         return x
 
 class MBNETSNN_NegQ_LP(nn.Module):
-    def __init__(self, num_classes=10):
+    def __init__(self, num_classes=10, wbit=4, thres=1.0, tau=0.5):
         super(MBNETSNN_NegQ_LP, self).__init__()
         self.features = nn.Sequential(
-            SConv(3, 32, 3, 1, 1, pool=True, neg=-1.0),
-            SConvDW(32, 64, 3, 1, 1, pool=True, neg=-1.0),
-            SConvDW(64, 64, 3, 1, 1, pool=True, neg=-1.0),
-            SConvDW(64, 128, 3, 1, 1, pool=True, neg=-1.0),
-            SConvDW(128, 128, 3, 1, 1, pool=True, neg=-1.0),
+            SConv(3, 32, 3, 1, 1, pool=True, neg=-1.0, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(32, 64, 3, 1, 1, pool=True, neg=-1.0, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(64, 64, 3, 1, 1, pool=True, neg=-1.0, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(64, 128, 3, 1, 1, pool=True, neg=-1.0, wbit=wbit, thres=thres, tau=tau),
+            SConvDW(128, 128, 3, 1, 1, pool=True, neg=-1.0, wbit=wbit, thres=thres, tau=tau),
         )
 
         W = int(48/2/2/2/2)
-        self.classifier1 = SeqToANNContainer(nn.Linear(1152, num_classes))
+        if wbit < 32:
+            self.classifier1 = SeqToANNContainer(QLinear(1152, num_classes, wbit=wbit))
+        else:
+            self.classifier1 = SeqToANNContainer(nn.Linear(1152, num_classes))
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
