@@ -396,10 +396,18 @@ def get_ncars_loader(path, batch_size, size):
     train_path = os.path.join(path, "train")
     test_path = os.path.join(path, "test")
 
-    transform = transforms.Resize(size)
+    transform = transforms.CenterCrop(size)
     
     trainset = DatasetFolder(root=train_path, loader=loadpt, extensions=(".pt"), transform=transform)
     testset = DatasetFolder(root=test_path, loader=loadpt, extensions=(".pt"), transform=transform)
+
+    # c = testset.find_classes("/home2/jmeng15/data/ncars_pt_t16/test/")
+    # print(c[0])
+    # sample, target = testset.__getitem__(0)
+    # print(sample.unique())
+    # print(testset.__len__)
+
+    # import pdb;pdb.set_trace()
 
     trainloader = DataLoader(trainset, batch_size=batch_size, shuffle=True, num_workers=4)
     testloader = DataLoader(testset, batch_size=batch_size, shuffle=False, num_workers=4)

@@ -17,6 +17,8 @@ from models.VGG9_models import VGGSNN9
 from models.VGG7_models import VGGSNN7
 from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool, MBNETSNN_NegQ, MBNETSNNWIDE_PostPool_NegQ, MBNETSNN_NegQ_LP
 from models.MobilenetSNN import MBNETSNN
+from models.methods import QBaseConv2d, QBaseLinear
+from models.layers import LIFSpike
 from models.t2c import LayerFuser, T2C
 import shutil
 import torch
@@ -141,13 +143,16 @@ parser.add_argument('--T',
                     type=int,
                     metavar='N',
                     help='Time Stamps')
-parser.add_argument('--process',
-                    default='training',
-                    type=str,
-                    metavar='N',
-                    help='Process type training/inference')
+parser.add_argument('--fine_tune', dest='fine_tune', action='store_true',
+                    help='fine tuning from the pre-trained model, force the start epoch be zero')
 
 args = parser.parse_args()
+
+activation = {}        
+def get_activation(name):
+    def hook(model, input, output):
+        activation[name] = output.detach()
+    return hook
 
 
 def reduce_mean(tensor, nprocs):
@@ -216,7 +221,7 @@ def main_worker(local_rank, nprocs, args):
                             world_size=args.nprocs,
                             rank=local_rank)
 
-    if args.process == 'training':
+    if not args.fine_tune:
         load_names = None
     else:
         load_names = args.resume
@@ -232,8 +237,11 @@ def main_worker(local_rank, nprocs, args):
         din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     elif args.dataset == "ncars":
-        data_path="/home2/jmeng15/data/ncars_pt/"
-        din = [50, 60]
+        if args.T == 30:
+            data_path="/home2/jmeng15/data/ncars_pt/"
+        elif args.T == 16:
+            data_path="/home2/jmeng15/data/ncars_pt_t16/"
+        din = [64, 64]
         train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=args.batch_size, size=din)
     elif args.dataset == "ibm_gesture":
         data_path = "/home2/jmeng15/data/ibm_gesture_pt"
@@ -241,15 +249,18 @@ def main_worker(local_rank, nprocs, args):
         train_loader, val_loader, num_classes = dvs2dataset.get_cifar_loader(data_path, batch_size=24, size=din[0])
     
     if args.model == "MBNETSNN_LP":
-        model = MBNETSNN_NegQ_LP()
+        model = MBNETSNN_NegQ_LP(num_classes=num_classes, wbit=args.wbit, thres=args.thres, tau=args.tau)
     elif args.model == "MBNETSNN":
         model = MBNETSNN()
     elif args.model == "MBNETSNNWIDE_PostPool_NegQ":
         model = MBNETSNNWIDE_PostPool_NegQ()
     elif args.model == "VGGSNN7":
         model = VGGSNN7()
+    elif args.model == "VGGSNN9":
+        model = VGGSNN9(num_classes=num_classes)
     model.T = args.T
     logger.info(model)
+
 
     if load_names != None:
         state_dict = torch.load(load_names)
@@ -275,11 +286,16 @@ def main_worker(local_rank, nprocs, args):
     logger_dict = {}
 
     if args.evaluate:
+        for n, m in model.named_modules():
+            if isinstance(m, (QBaseConv2d, QBaseLinear, LIFSpike)):
+                m.register_forward_hook(hook=get_activation(n))
+        
         validate(val_loader, model, criterion, local_rank, args, logger, logger_dict)
 
         # t2c
         nn2c = T2C(model=model, swl=16, sfl=13, args=args)
         qnn = nn2c.nn2chip()
+        print(qnn)
         validate(val_loader, qnn, criterion, local_rank, args, logger, logger_dict)
         nn2c.get_info(qnn)
 
@@ -288,6 +304,13 @@ def main_worker(local_rank, nprocs, args):
         filename = "t2c_model.pth.tar"
         path = os.path.join(args.save_path, filename)
         torch.save(state, path)
+
+        # check the intermediate results
+        for k, v in activation.items():
+            print("l={}; unique={}".format(k, v.unique()))
+            fname = './layer_fm/'+ k +'.pt'
+            torch.save(v.cpu(),fname)
+
         return
 
     for epoch in range(args.start_epoch, args.epochs):
@@ -413,6 +436,7 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
     with torch.no_grad():
         end = time.time()
         for i, (images, target) in enumerate(val_loader):
+            
             images = images.cuda(local_rank, non_blocking=True)
             target = target.cuda(local_rank, non_blocking=True)
 
@@ -426,7 +450,10 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 loss = criterion(mean_out, target)
 
                 # measure accuracy and record loss
-                acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
+                if args.dataset == "ncars":
+                    acc1, = accuracy(mean_out, target, topk=(1, ))
+                else:
+                    acc1, acc5 = accuracy(mean_out, target, topk=(1, 5))
                 # acc1, = accuracy(mean_out, target, topk=(1,))
 
                 torch.distributed.barrier()
@@ -449,7 +476,7 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 logger_dict["valid_loss"] = losses.avg
                 logger_dict["valid_top1"] = top1.avg
                 logger_dict["valid_top5"] = top5.avg
-                # break
+            break
         
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1,
                                                                     top5=top5))
