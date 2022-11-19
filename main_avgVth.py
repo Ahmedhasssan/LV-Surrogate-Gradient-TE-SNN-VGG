@@ -27,7 +27,7 @@ import sys
 sys.path.insert(1, '/home2/ahasssan/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -224,7 +224,7 @@ def main_worker(local_rank, nprocs, args):
 
     if args.dataset == "dvscifar10":
         if args.T == 30:
-            data_path="/home/ahasssan/ahmed/cifar_dvs_pt_30"
+            data_path="/home/jmeng15/data/dvs_cifar10_30steps/"
         elif args.T == 10:
             data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
         elif args.T == 8:
@@ -248,6 +248,8 @@ def main_worker(local_rank, nprocs, args):
         model = MBNETSNNWIDE_PostPool_NegQ()
     elif args.model == "VGGSNN7":
         model = VGGSNN7()
+    elif args.model == "VGGSNN9":
+        model = VGGSNN9(num_classes=num_classes)
     model.T = args.T
     logger.info(model)
 

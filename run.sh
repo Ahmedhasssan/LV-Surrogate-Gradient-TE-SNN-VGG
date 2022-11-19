@@ -1,15 +1,16 @@
-PYTHON="/home/ahasssan/anaconda3/envs/myenv/bin/python"
+PYTHON="/home/jmeng15/anaconda3/bin/python"
 
-lambda=0.1
+lambda=0.45
 
 $PYTHON main_avgVth.py \
     --dataset dvscifar10 \
     --epochs 200 \
+    --model VGGSNN9 \
     --T 30 \
-    --lr 5e-4 \
+    --lr 1e-3 \
     --TET True \
     --lamb ${lambda} \
     --batch-size 32 \
-    --lvth False \
-    --save_path "./save/low_precision/8T/Flooring/DVS_CIFAR10/TET/MBNetWide/training_lambda${lambda}_PreSpikeAvgPool_NegQ/"
+    --lvth True \
+    --save_path "./Rebuttal/VGG9SNN/200epochs/tmp/"
     
