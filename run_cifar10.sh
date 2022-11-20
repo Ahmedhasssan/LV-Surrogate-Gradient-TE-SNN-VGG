@@ -8,6 +8,7 @@ $PYTHON main_avgVth_cifar10.py \
     --TET True \
     --lr 1e-3 \
     --lamb ${lambda} \
+    --dataset cifar100 \
     --batch-size 128 \
     --lvth False \
     --save_path "./save/rebuttal/cifar10/TETBaseline/resnet19/training_lambda${lambda}_SkipFirstLayer_Adam/"
