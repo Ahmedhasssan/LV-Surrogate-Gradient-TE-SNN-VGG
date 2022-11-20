@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.datasets import DatasetFolder
 from torchvision import transforms
-from .utils_.visualizations import visualizeHistogram, visualizeEventsTime
+from utils_.visualizations import visualizeHistogram, visualizeEventsTime
 from torch.utils.data import random_split, DataLoader
 
 # RGB characteristics
@@ -305,7 +305,7 @@ class DVSLoader:
                     vhist = visualizeHistogram(histogram=hist, path_name=f"./hist_{ii}.png")
                     vhist = torch.from_numpy(vhist)
                     vhist = vhist.permute(2,0,1)
-                    print(f"class={item}, idx={ii}; shape={list(vhist.size())}")
+                    print(f"class={item}, idx={ii}; shape={list(vhist.size())}, unique={vhist.unique()}")
 
                     if save:
                         save_dir = os.path.join(self.save_root, item)
@@ -356,7 +356,7 @@ class DVSLoader:
                         frames = torch.nn.functional.pad(frames, (0,0,0,diff_y,0,0,0,0))
 
                     frames = frames.permute(0,3,1,2)
-                    print(f"class={item}, idx={ii}; shape={list(frames.size())}")
+                    print(f"class={item}, idx={ii}; shape={list(frames.size())}; unique={frames.unique()}")
 
                     if save:
                         save_dir = os.path.join(self.save_root, item)
@@ -453,14 +453,14 @@ def get_ibm_loader(path, batch_size, size):
 Test script
 """
 
-# if __name__ == "__main__":
-#     root = "/home/jmeng15/data/DVS-CIFAR10/dvs-cifar10"
-#     save_dir = "/home/jmeng15/data/dvs_cifar10/"
-#     height = 128
-#     width = 128
-#     mode=""
-#     # loader = DVSLoader(root, mode, height=height, width=width, save_dir=save_dir)
-#     # loader.event2quene(nframes=30, save=True, get_hist=False, dataset="cifar")
+if __name__ == "__main__":
+    root = "/home/jmeng15/data/DVS-CIFAR10/dvs-cifar10"
+    save_dir = "/home/jmeng15/data/dvs_cifar10/"
+    height = 128
+    width = 128
+    mode=""
+    loader = DVSLoader(root, mode, height=height, width=width, save_dir=save_dir)
+    loader.event2quene(nframes=30, save=True, get_hist=False, dataset="cifar")
 
 #     data_set = DatasetFolder(
 #         root="/home/jmeng15/data/dvs_cifar10/",
