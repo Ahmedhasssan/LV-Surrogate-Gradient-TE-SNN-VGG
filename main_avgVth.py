@@ -241,7 +241,7 @@ def main_worker(local_rank, nprocs, args):
             data_path="/home2/jmeng15/data/ncars_pt/"
         elif args.T == 16:
             data_path="/home2/jmeng15/data/ncars_pt_t16/"
-        din = [64, 64]
+        din = [48, 48]
         train_loader, val_loader, num_classes = dvs2dataset.get_ncars_loader(data_path, batch_size=args.batch_size, size=din)
     elif args.dataset == "ibm_gesture":
         data_path = "/home2/jmeng15/data/ibm_gesture_pt"
@@ -307,7 +307,7 @@ def main_worker(local_rank, nprocs, args):
 
         # check the intermediate results
         for k, v in activation.items():
-            print("l={}; unique={}".format(k, v.unique()))
+            print("l={}; shape={}".format(k, v.shape))
             fname = './layer_fm/'+ k +'.pt'
             torch.save(v.cpu(),fname)
 
@@ -476,7 +476,6 @@ def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict
                 logger_dict["valid_loss"] = losses.avg
                 logger_dict["valid_top1"] = top1.avg
                 logger_dict["valid_top5"] = top5.avg
-            break
         
         print(' * Acc@1 {top1.avg:.3f} Acc@5 {top5.avg:.3f}'.format(top1=top1,
                                                                     top5=top5))

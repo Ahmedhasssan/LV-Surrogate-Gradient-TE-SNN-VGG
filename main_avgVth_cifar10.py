@@ -13,18 +13,16 @@ import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
 from models.resnet_models import resnet19
-from models.VGG9_cifar_models import CIFARVGGSNN9
 import shutil
 import torch
 import tabulate
 import argparse
 from functions import TET_loss, seed_all
-from get_cifar_loader import build_cifar
+from get_cifar_loader import build_cifar, build_cifar100
 import sys
 sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
-from dvsloader import dvs2dataset
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',
@@ -184,8 +182,19 @@ def main_worker(local_rank, nprocs, args):
     load_names = None
     save_names = None
 
-    # model = CIFARVGGSNN9(T=args.T)
-    model = resnet19(num_classes=10, T=args.T)
+    if args.dataset == "cifar10":
+        train_loader, val_loader = build_cifar(args)
+        num_classes = 10
+    elif args.dataset == "cifar100":
+        train_loader, val_loader = build_cifar100(args)
+        num_classes = 100
+
+    train_sampler = torch.utils.data.distributed.DistributedSampler(
+         train_loader)
+    val_sampler = torch.utils.data.distributed.DistributedSampler(val_loader)
+
+
+    model = resnet19(num_classes=num_classes, T=args.T)
     logger.info(model)
 
     if load_names != None:
@@ -200,16 +209,10 @@ def main_worker(local_rank, nprocs, args):
                                                       device_ids=[local_rank])
 
     criterion = nn.CrossEntropyLoss().cuda(local_rank)
-    # optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
-    optimizer = torch.optim.SGD(model.parameters(), lr=args.lr)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, eta_min=0, T_max=args.epochs)
     cudnn.benchmark = True
     
-    train_loader, val_loader = build_cifar(args)
-
-    train_sampler = torch.utils.data.distributed.DistributedSampler(
-         train_loader)
-    val_sampler = torch.utils.data.distributed.DistributedSampler(val_loader)
 
     if args.evaluate:
         validate(val_loader, model, criterion, local_rank, args)
