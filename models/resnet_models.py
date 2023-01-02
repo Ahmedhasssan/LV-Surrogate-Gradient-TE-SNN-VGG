@@ -2,6 +2,7 @@ import random
 from models.layers import *
 
 
+
 # ------------------- #
 #   ResNet Example    #
 # ------------------- #
@@ -9,8 +10,8 @@ from models.layers import *
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=dilation, groups=groups, bias=False, dilation=dilation)
+    return QConv2d(in_planes, out_planes, kernel_size=3, stride=stride,
+                     padding=dilation, groups=groups, bias=False, dilation=dilation, wbit=4)
 
 
 def conv1x1(in_planes, out_planes, stride=1):
@@ -39,8 +40,11 @@ class BasicBlock(nn.Module):
 
         self.conv1_s = tdLayer(self.conv1, self.bn1)
         self.conv2_s = tdLayer(self.conv2, self.bn2)
-        self.spike1 = LIFSpike()
-        self.spike2 = LIFSpike()
+        self.spike1 = ZIFArchTan()
+        self.spike2 = ZIFArchTan()
+        
+        # self.spike1 = LIFSpike()
+        # self.spike2 = LIFSpike()
 
     def forward(self, x):
         identity = x
@@ -165,6 +169,16 @@ def resnet19(pretrained=False, progress=True, **kwargs):
     return _resnet('resnet18', BasicBlock, [3, 3, 2], pretrained, progress,
                    **kwargs)
 
+def resnet18(pretrained=False, progress=True, **kwargs):
+    r"""ResNet-18 model from
+    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_
+
+    Args:
+        pretrained (bool): If True, returns a model pre-trained on ImageNet
+        progress (bool): If True, displays a progress bar of the download to stderr
+    """
+    return _resnet('resnet18', BasicBlock, [2, 2, 2, 2], pretrained, progress,
+                   **kwargs)
 
 
 if __name__ == '__main__':

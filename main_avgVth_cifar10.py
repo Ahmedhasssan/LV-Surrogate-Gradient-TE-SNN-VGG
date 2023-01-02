@@ -22,7 +22,7 @@ from get_cifar_loader import build_cifar, build_cifar100
 import sys
 sys.path.insert(1, '/home/jmeng15/LV-Surrogate-Gradient-TE-SNN-VGG/dvsloader')
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 parser = argparse.ArgumentParser(description='PyTorch Temporal Efficient Training')
 parser.add_argument('-j',

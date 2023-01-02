@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from torchvision.datasets import DatasetFolder
 from torchvision import transforms
-from utils_.visualizations import visualizeHistogram, visualizeEventsTime
+from .utils_.visualizations import visualizeHistogram, visualizeEventsTime
 from torch.utils.data import random_split, DataLoader
 
 # RGB characteristics

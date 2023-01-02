@@ -12,7 +12,7 @@ import torch.optim
 import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
-from models.resnet_models import resnet19
+from models.resnet_models import resnet19, resnet18
 from models.VGG9_models import VGGSNN9
 from models.VGG7_models import VGGSNN7
 from models.MobilenetSNN import MBNETSNN, MBNETSNNWIDE, MBNETSNNWIDE_PostPool, MBNETSNN_NegQ, MBNETSNNWIDE_PostPool_NegQ, MBNETSNN_NegQ_LP
@@ -230,8 +230,10 @@ def main_worker(local_rank, nprocs, args):
     if args.dataset == "dvscifar10":
         if args.T == 30:
             data_path="/home/jmeng15/data/dvs_cifar10_30steps/"
+        elif args.T == 16:
+            data_path = "/home2/jmeng15/data/dvs_cifar10_16steps/"
         elif args.T == 10:
-            data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10"
+            data_path="~/data/dvs_cifar10/"
         elif args.T == 8:
             data_path="/home/ahasssan/ahmed/LV-Surrogate-Gradient-TE-SNN-VGG/dvs_cifar10_8"
         din = [48, 48]
@@ -258,6 +260,8 @@ def main_worker(local_rank, nprocs, args):
         model = VGGSNN7()
     elif args.model == "VGGSNN9":
         model = VGGSNN9(num_classes=num_classes)
+    elif args.model == "resnet19":
+        model = resnet19(num_classes=num_classes, T=args.T)
     model.T = args.T
     logger.info(model)
 
@@ -420,6 +424,7 @@ def train(train_loader, model, criterion, optimizer, epoch, local_rank, args, lo
         # update regularization target
         if args.lvth:
             mean = vthre.avg
+            # mean = 1.0
 
 
 def validate(val_loader, model, criterion, local_rank, args, logger, logger_dict):

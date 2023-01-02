@@ -310,7 +310,11 @@ class tdLayer(nn.Module):
         self.bn = bn
 
     def forward(self, x):
-        x_ = self.layer(x)
+        try:
+            x_ = self.layer(x)
+        except:
+            print(self.layer)
+            import pdb;pdb.set_trace()
         if self.bn is not None:
             x_ = self.bn(x_)
         return x_
