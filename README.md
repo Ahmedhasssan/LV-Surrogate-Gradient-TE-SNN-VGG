@@ -116,5 +116,12 @@ Here are the papers related to this repository:
 
 1. **LT-SNN**: Hasssan, A., Meng, J., & Seo, J. S. (2024, June). Spiking Neural Network with Learnable Threshold for Event-based Classification and Object Detection. In 2024 International Joint Conference on Neural Networks (IJCNN) (pp. 1-8). IEEE.*. [Link to paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10650320).
 
+## Inference on Prophesee-Gen1 Dataset
+
+<img
+  src="./train/images/Train_histogram_detect_bounding boxes.png"
+  alt="Alt text"
+  title="Optional title"
+  style="display: inline-block; margin: 0 auto; max-width: 200px">
 
 We welcome feedback, suggestions, and contributions to enhance LT-SNN!
