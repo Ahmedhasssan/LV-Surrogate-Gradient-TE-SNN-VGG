@@ -1,6 +1,6 @@
 # LT-SNN: Spiking Neural Network with Learnable Threshold for Event-based Classification and Object Detection
 
-SpQuant-SNN introduces an innovative quantization strategy for spiking neural networks (SNNs), enabling **ultra-low precision membrane potentials** combined with **sparse activations**. This approach significantly improves efficiency and unlocks the potential for **on-device spiking neural network applications**, such as energy-efficient edge AI.
+LT-SNN introduces an innovative spiking neural networks (SNNs) optimization strategy by using a learnable potential threshold, enabling **SNN dynamics range in capturing complex scenes** combined with **sigmoid surrogate gradient**. This approach significantly improves efficiency and SNN performance on event/static image datasets.
 
 ## Table of Contents
 - [Features](#features)
