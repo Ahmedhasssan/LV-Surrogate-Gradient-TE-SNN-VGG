@@ -119,7 +119,7 @@ Here are the papers related to this repository:
 ## Inference on Prophesee-Gen1 Dataset
 
 <img
-  src="./train/images/Train_histogram_detect_bounding boxes.png"
+  src="./Train_histogram_detect_bounding boxes.png"
   alt="Alt text"
   title="Optional title"
   style="display: inline-block; margin: 0 auto; max-width: 200px">
