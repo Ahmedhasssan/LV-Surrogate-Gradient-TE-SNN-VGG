@@ -75,23 +75,26 @@ SpQuant-SNN achieves state-of-the-art performance on spiking neural network benc
 
 ## Dataset: DVS-CIFAR10
 
-| **Method**                   | **Architecture**       | **Weight Precision** | **Umem Precision** | **Weight Memory (MB)** | **Umem Memory (MB)** | **Total Memory (MB)** | **FLOPs Reduction** | **Top-1 Accuracy**       |
-|------------------------------|------------------------|-----------------------|--------------------|-------------------------|-----------------------|-----------------------|--------------------|--------------------------|
-| Our work (SNN-BL)            | VGG-9                 | 32-bit               | 32-bit             | 41.12                  | 3.68                 | 48.58                | 1×                | 78.45%                  |
-| Our work (Quant-SNN)         | VGG-9                 | 2-bit                | 1.58-bit           | 2.57                   | 0.23                 | 3.75                 | 1×                | 77.94% (-0.51)          |
-| Our work (SpQuant-SNN)       | VGG-9                 | 2-bit                | 1.58-bit           | 2.57                   | 0.23                 | 3.75                 | 5.0×              | 76.80% (-1.14)          |              |
+| **Dataset**       | **Method**            | **SNN Architecture**       | **# of Parameters** | **Weight Precision** | **Simulation Length** | **Top-1 Accuracy** |
+|--------------------|-------------------|----------------------------|---------------------|----------------------|-----------------------|--------------------|
+| **DVS-CIFAR-10**   | **LT-SNN**        | VGG-11                     | 9.34M               | 32-bit               | 30                    | 79.51%             |
+|                    | **LT-SNN**        | MobileNet-V1 (light)       | 1.28M               | 32-bit               | 30                    | 75.70%             |
+|                    | **LT-SNN**        | VGG-7                      | 1.91M               | 32-bit               | 30                    | 80.20%             |
+|                    | **LT-SNN**        | VGG-9                      | 7.07M               | 4-bit                | 30                    | 80.07%             |
+|                    | **LT-SNN**        | VGG-9                      | 7.07M               | 32-bit               | 10                    | 79.10%             |
+|                    | **LT-SNN**        | VGG-9                      | 7.07M               | 32-bit               | 8                     | 78.30%             |
+|                    | **LT-SNN**        | Spikformer-16-256          | 4.15M               | 32-bit               | 10                    | 79.00%             |
 
-## Dataset: CIFAR10
+## Dataset: CIFAR-10
 
-| **Method**                   | **Architecture**       | **Weight Precision** | **Umem Precision** | **Weight Memory (MB)** | **Umem Memory (MB)** | **Total Memory (MB)** | **FLOPs Reduction** | **Top-1 Accuracy**       |
-|------------------------------|------------------------|-----------------------|--------------------|-------------------------|-----------------------|-----------------------|--------------------|--------------------------|
-| Our work (SNN-BL)  | ResNet-19 | 32-bit | 32-bit | 49.94 | 5.5 | 60.94 | 1× | 94.56%|
-| Our work (Quant-SNN) | ResNet-19 | 4-bit | 1.58-bit | 6.24 | 0.25 | 7.49 | 1× | 94.11% (-0.45)|
-| Our work (Quant-SNN) | Spikformer-4-256 | 8-bit | 1.58-bit | 9.62 | 0.25 | 15.26 | 1× | 94.99% (-0.52)|
-| Our work (SpQuant-SNN) | ResNet-19 | 4-bit | 1.58-bit | 6.24 | 0.25 | 7.49 | 5.1× | 93.09% (-1.48)|
+| **Dataset**       | **Method**            | **SNN Architecture**       | **# of Parameters** | **Weight Precision** | **Simulation Length** | **Top-1 Accuracy** |
+|--------------------|-------------------|----------------------------|---------------------|----------------------|-----------------------|--------------------|
+| **CIFAR-10**       | **LT-SNN**        | ResNet-19 | 12.31M | 32-bit | 2 | 94.19% |
+|                    | **LT-SNN**        | ResNet-19 | 12.31M | 32-bit | 6 | 94.56% |
+|                    | **LT-SNN**        | Spikformer-4-256 | 4.15M  | 32-bit | 4 | 95.19%   |
 
 
-Experimental results of Quant-SNN and SpQuant-SNN on DVS datasets using T = 10. These results highlight the effectiveness of SpQuant-SNN in achieving high accuracy and energy efficiency for edge AI applications.
+Experimental results of LT-SNN on DVS-CIFAR10 datasets using different simulation lengths. These results highlight the effectiveness of LT-SNN in achieving high accuracy and energy efficiency for edge AI applications.
 
 ## Contact
 
@@ -104,8 +107,7 @@ For any inquiries or collaboration opportunities, feel free to reach out:
 
 Here are the papers related to this repository:
 
-1. **IM-SNN**: Hasssan, A., Meng, J., Anupreetham, A., & Seo, J. S. (2024, August). IM-SNN: Memory-Efficient Spiking Neural Network with Low-Precision Membrane Potentials and Weights. IEEE/ACM International Conference on Neuromorphic Systems (ICONS).*. [Link to paper](https://par.nsf.gov/biblio/10545833).
-2. **Sp-QuantSNN**: Hasssan, Ahmed, Jian Meng, Anupreetham Anupreetham, and Jae-sun Seo. "SpQuant-SNN: ultra-low precision membrane potential with sparse activations unlock the potential of on-device spiking neural networks applications." Frontiers in Neuroscience 18 (2024): 1440000. [Link to paper](https://www.frontiersin.org/journals/neuroscience/articles/10.3389/fnins.2024.1440000/full).
+1. **LT-SNN**: Hasssan, A., Meng, J., & Seo, J. S. (2024, June). Spiking Neural Network with Learnable Threshold for Event-based Classification and Object Detection. In 2024 International Joint Conference on Neural Networks (IJCNN) (pp. 1-8). IEEE.*. [Link to paper](https://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&arnumber=10650320).
 
 
-We welcome feedback, suggestions, and contributions to enhance SpQuant-SNN!
+We welcome feedback, suggestions, and contributions to enhance LT-SNN!
