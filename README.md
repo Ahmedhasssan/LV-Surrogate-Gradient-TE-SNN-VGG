@@ -93,6 +93,13 @@ SpQuant-SNN achieves state-of-the-art performance on spiking neural network benc
 |                    | **LT-SNN**        | ResNet-19 | 12.31M | 32-bit | 6 | 94.56% |
 |                    | **LT-SNN**        | Spikformer-4-256 | 4.15M  | 32-bit | 4 | 95.19%   |
 
+## Dataset: Prophesee-Gen1 Automotive Datase
+
+| **Method**         | **Model Architecture**  | **SNN** | **Threshold** | **mAP** |
+|---------------------|-------------------------|---------|---------------|---------|
+| **LT-SNN**       | Custom-YoloV2-SNN     | Yes     | Fixed         | 0.122   |
+| **LT-SNN**       | Custom-YoloV2-SNN     | Yes     | Learnable     | 0.298   |
+
 
 Experimental results of LT-SNN on DVS-CIFAR10 datasets using different simulation lengths. These results highlight the effectiveness of LT-SNN in achieving high accuracy and energy efficiency for edge AI applications.
 
